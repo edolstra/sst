@@ -1,0 +1,7 @@
+[package]
+name = "sst-rust"
+version = "0.1.0"
+authors = ["Eelco Dolstra <edolstra@gmail.com>"]
+
+[dependencies]
+lazy_static = "1.1.0"
