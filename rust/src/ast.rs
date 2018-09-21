@@ -15,6 +15,7 @@ pub enum Item {
     Element(Element),
 }
 
+/*
 impl Item {
     pub fn is_whitespace(&self) -> bool {
         match self {
@@ -22,7 +23,15 @@ impl Item {
             Item::Element(_) => false
         }
     }
+
+    pub fn get_pos(&self) -> &Pos {
+        match self {
+            Item::Text(_, pos) => pos,
+            Item::Element(element) => &element.pos
+        }
+    }
 }
+*/
 
 #[derive(Debug, Clone)]
 pub struct Element {
@@ -30,6 +39,14 @@ pub struct Element {
     pub named_args: HashMap<String, Doc>,
     pub pos_args: Vec<Doc>,
     pub pos: Pos,
+}
+
+impl Element {
+    /// Test whether the element is empty, i.e. has only one empty
+    /// argument (e.g. \foo{}).
+    pub fn is_empty(&self) -> bool {
+        self.pos_args.len() == 0 || (self.pos_args.len() == 1 && self.pos_args[0].is_empty())
+    }
 }
 
 pub type Tag = String;

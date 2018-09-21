@@ -85,7 +85,7 @@ fn eval_into(items: &mut Vec<Item>, mut env: Env, doc: &Doc) -> Result<(), Error
                     if let Some(m) = lookup_env(&elem.tag, &env) {
                         let mut env = m.next.clone();
 
-                        if m.arity != elem.pos_args.len() && !(m.arity == 0 && elem.pos_args.len() == 1 && elem.pos_args[0].is_empty()) {
+                        if m.arity != elem.pos_args.len() && !(m.arity == 0 && elem.is_empty()) {
                             return Err(Error::WrongMacroArgCount(m.name.clone(), m.arity, elem.pos_args.len()));
                         }
 

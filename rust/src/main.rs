@@ -1,6 +1,10 @@
 #[macro_use]
 extern crate lazy_static;
 
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
+
 mod ast;
 mod parser;
 mod eval;
@@ -17,6 +21,6 @@ fn main() {
     let ast = parser::parse_string(&filename, &input).expect("Parse error");
     let ast = eval::eval(&ast).expect("Evaluation error");
     //println!("{:#?}", ast);
-    validate::validate(&core::SCHEMA, &ast).expect("Validation error");
-    println!("Ok")
+    let instance = validate::validate(&core::SCHEMA, &ast, &filename).expect("Validation error");
+    println!("{}", &serde_json::to_string(&instance).unwrap());
 }

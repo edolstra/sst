@@ -1,121 +1,260 @@
 use ast::*;
 use schema::*;
 use std::mem;
+use std::str::Chars;
 
 #[derive(Debug)]
 pub enum Error {
-    Bad,
-    NotImplemented(Pattern, Option<Pos>),
-    ExpectedText(Option<Pos>),
-    ExpectedElement(Tag, Option<Pos>),
-    WrongArgCount(Tag, usize, usize, Option<Pos>),
-    TrailingContent(Option<Pos>),
+    Expected(Vec<Expected>, Pos),
+    WrongArgCount(Tag, usize, usize, Pos),
+    SchemaError(Tag),
 }
 
-pub fn validate(schema: &Schema, doc: &Doc) -> Result<(), Error> {
-    validate_full_doc(schema, &schema.start, doc)
+#[derive(Debug)]
+pub enum Expected {
+    Text,
+    Para,
+    Element(Tag),
+    End,
+}
+
+impl Error {
+    fn is_fatal(&self) -> bool {
+        match self {
+            Error::WrongArgCount(_, _, _, _) => true,
+            Error::SchemaError(_) => true,
+            _ => false
+        }
+    }
+}
+
+#[derive(Serialize, Debug)]
+pub enum Instance {
+    Text(String),
+    Element(Tag, Vec<Instance>),
+    Para(Box<Instance>),
+    Seq(Vec<Instance>),
+    Choice(usize, Box<Instance>),
+    Many(Vec<Instance>),
+}
+
+pub fn validate(schema: &Schema, doc: &Doc, filename: &str) -> Result<Instance, Error> {
+    validate_full_doc(schema, &schema.start, doc,
+                      Pos { filename: filename.to_string(), line: 0, column: 0 })
 }
 
 #[derive(Clone)]
 struct Cursor<'a> {
     items: &'a [Item],
+    pending_chars: Chars<'a>,
+    in_para: ParaState,
+    cur_pos: Pos,
 }
+
+#[derive(PartialEq, Eq, Clone)]
+enum ParaState { No, Start, Inside, End }
 
 impl<'a> Cursor<'a> {
-    fn advance(&mut self) {
-        self.items = &self.items[1..];
+    fn new(items: &'a [Item], pos: Pos) -> Self {
+         Cursor { items, pending_chars: "".chars(), in_para: ParaState::No, cur_pos: pos }
     }
 
-    fn pos(&self) -> Option<Pos> {
+    fn pos(&self) -> Pos {
+        /*
         match self.items.first() {
-            Some(Item::Element(element)) => Some(element.pos.clone()),
+            Some(Item::Element(element)) => element.pos.clone(),
             Some(Item::Text(_, pos)) => Some(pos.clone()),
-            _ => None
+            _ => self.cur_pos.clone(),
+        }
+         */
+        self.cur_pos.clone()
+    }
+
+    fn peek_char(&mut self) -> Option<char> {
+        if self.in_para == ParaState::End { None }
+        else if let Some(c) = self.pending_chars.clone().next() { Some(c) }
+        else if let Some(Item::Text(s, _)) = self.items.first() { s.chars().next() }
+        else { None }
+    }
+
+    fn get_char(&mut self) -> Option<char> {
+        if self.in_para == ParaState::End { None }
+
+        else if let Some(c) = self.pending_chars.next() {
+            if c == '\n' {
+                self.cur_pos.line += 1;
+                self.cur_pos.column = 0;
+            } else {
+                self.cur_pos.column += 1;
+            }
+            Some(c)
+        }
+
+        else if let Some(Item::Text(s, pos)) = self.items.first() {
+            self.cur_pos = pos.clone();
+            self.items = &self.items[1..];
+            self.pending_chars = s.chars();
+            self.pending_chars.next()
+        }
+
+        else { None}
+    }
+
+    fn skip_ws(&mut self) {
+        while let Some(c) = self.peek_char() {
+            if !c.is_whitespace() { break };
+            self.get_char();
         }
     }
-}
 
-pub fn validate_full_doc(schema: &Schema, pattern: &Pattern, doc: &Doc) -> Result<(), Error> {
-    let mut cursor = Cursor { items: doc };
-    validate_doc(schema, pattern, &mut cursor)?;
-    skip_ws(&mut cursor);
-    if !cursor.items.is_empty() {
-        return Err(Error::TrailingContent(cursor.pos()))
+    fn get_element(&mut self, tag: &Tag) -> Option<&'a Element> {
+        self.skip_ws();
+        if !self.pending_chars.as_str().is_empty() { None }
+        else {
+            match self.items.first() {
+                Some(Item::Element(element)) if &element.tag == tag => {
+                    self.pending_chars = "".chars();
+                    self.items = &self.items[1..];
+                    self.cur_pos = element.pos.clone();
+                    Some(element)
+                }
+                _ => None
+            }
+        }
     }
-    Ok(())
+
+    fn at_end(&self) -> bool {
+        self.in_para == ParaState::End || (self.items.is_empty() && self.pending_chars.as_str().is_empty())
+    }
 }
 
-fn validate_doc(schema: &Schema, pattern: &Pattern, mut cursor: &mut Cursor) -> Result<(), Error> {
+pub fn validate_full_doc(schema: &Schema, pattern: &Pattern, doc: &Doc, pos: Pos) -> Result<Instance, Error> {
+    let mut cursor = Cursor::new(doc, pos);
+    let instance = validate_doc(schema, pattern, &mut cursor)?;
+    cursor.skip_ws();
+    if !cursor.at_end() {
+        return Err(Error::Expected(vec![Expected::End], cursor.pos()))
+    }
+    Ok(instance)
+}
 
-    println!("AT {:?}", cursor.pos());
+fn validate_doc(schema: &Schema, pattern: &Pattern, mut cursor: &mut Cursor) -> Result<Instance, Error> {
     match pattern {
 
         Pattern::Text => {
-            match cursor.items.first() {
-                Some(Item::Text(_, _)) => { cursor.advance() },
-                _ => return Err(Error::ExpectedText(cursor.pos()))
+            let mut text = String::new();
+            let mut in_empty_line = false;
+            while let Some(c) = cursor.get_char() {
+                text.push(c);
+                match cursor.in_para {
+                    ParaState::No => {},
+                    ParaState::Start => {
+                        if !c.is_whitespace() {
+                            cursor.in_para = ParaState::Inside;
+                        }
+                    }
+                    ParaState::Inside => {
+                        if c == '\n' {
+                            if in_empty_line {
+                                cursor.in_para = ParaState::End;
+                                break;
+                            }
+                            in_empty_line = true;
+                        } else if in_empty_line && !c.is_whitespace() {
+                            in_empty_line = false;
+                        }
+                    }
+                    ParaState::End => panic!()
+                }
             }
+            if text.is_empty() {
+                return Err(Error::Expected(vec![Expected::Text], cursor.pos()));
+            }
+            return Ok(Instance::Text(text));
         }
 
         Pattern::Para(pat) => {
+            if cursor.at_end() {
+                return Err(Error::Expected(vec![Expected::Para], cursor.pos()));
+            }
+            assert!(cursor.in_para == ParaState::No);
+            cursor.in_para = ParaState::Start;
+            let instance = validate_doc(schema, pat, cursor)?;
+            assert!(cursor.in_para != ParaState::No);
+            cursor.in_para = ParaState::No;
+            return Ok(Instance::Para(Box::new(instance)));
         }
 
         Pattern::Element(name) => {
-            skip_ws(&mut cursor);
-            match cursor.items.first() {
-                Some(Item::Element(element)) if &element.tag == name => {
-                    cursor.advance();
-                    let definition = &schema.elements[name];
-                    if definition.pos_args.len() != element.pos_args.len() {
+            if let Some(pos_args_patterns) = schema.elements.get(name) {
+                if let Some(element) = cursor.get_element(name) {
+                    let mut instances = vec!();
+                    if (pos_args_patterns.len() == 0 && !element.is_empty())
+                        || (pos_args_patterns.len() > 0 && pos_args_patterns.len() != element.pos_args.len())
+                    {
                         return Err(Error::WrongArgCount(
                             name.clone(),
-                            definition.pos_args.len(),
+                            pos_args_patterns.len(),
                             element.pos_args.len(),
-                            cursor.pos()))
+                            cursor.pos()));
                     }
-                    for (d, e) in definition.pos_args.iter().zip(element.pos_args.iter()) {
-                        validate_full_doc(schema, d, e)?
+                    for (d, e) in pos_args_patterns.iter().zip(element.pos_args.iter()) {
+                        instances.push(validate_full_doc(schema, d, e, element.pos.clone())?);
                     }
-                },
-                _ => return Err(Error::ExpectedElement(name.clone(), cursor.pos()))
+                    return Ok(Instance::Element(name.clone(), instances));
+                } else {
+                    return Err(Error::Expected(vec![Expected::Element(name.clone())], cursor.pos()));
+                }
+            } else {
+                return Err(Error::SchemaError(name.clone()));
             }
         }
 
         Pattern::Seq(patterns) => {
+            let mut instances = vec!();
             for pat in patterns {
-                validate_doc(schema, pat, &mut cursor)?
+                instances.push(validate_doc(schema, pat, &mut cursor)?);
             }
+            return Ok(Instance::Seq(instances));
         }
 
         Pattern::Choice(patterns) => {
+            let mut expected = vec!();
+            let pos = cursor.pos();
             for (n, pat) in patterns.iter().enumerate() {
                 let mut c = cursor.clone();
                 match validate_doc(schema, pat, &mut c) {
-                    Ok(_) => {
+                    Ok(instance) => {
                         mem::replace(cursor, c); // FIXME
-                        break
+                        return Ok(Instance::Choice(n, Box::new(instance)));
                     },
-                    Err(err) => if n + 1 == patterns.len() { return Err(err) }
+                    Err(err) => {
+                        match err {
+                            Error::Expected(mut exp, _) => expected.append(&mut exp),
+                            _ => return Err(err)
+                        }
+                    }
                 }
             }
+            return Err(Error::Expected(expected, pos));
         }
 
-        // FIXME: implement min/max
-        Pattern::Many(_, _, pattern) => {
-            while !cursor.items.is_empty() {
-                validate_doc(schema, pattern, &mut cursor)?
+        Pattern::Many(min, max, pattern) => {
+            let mut instances = vec!();
+            let mut done = false;
+            while !done && (max.is_none() || instances.len() < max.unwrap()) {
+                match validate_doc(schema, pattern, &mut cursor) {
+                    Ok(instance) => {
+                        instances.push(instance);
+                    }
+                    Err(err) => {
+                        if err.is_fatal() || instances.len() < *min { return Err(err); }
+                        done = true;
+                    }
+                }
             }
+            return Ok(Instance::Many(instances));
         }
-
-        _ => panic!(format!("{:?}", Error::NotImplemented(pattern.clone(), cursor.pos())))
-    }
-
-    Ok(())
-}
-
-fn skip_ws(cursor: &mut Cursor) {
-    while !cursor.items.is_empty() && cursor.items[0].is_whitespace() {
-        cursor.advance();
     }
 }
 

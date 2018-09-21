@@ -3,24 +3,14 @@ use ast::Tag;
 
 pub struct Schema {
     pub start: Pattern,
-    pub elements: HashMap<Tag, Element>
+    pub elements: HashMap<Tag, ElementType>
 }
+
+type ElementType = Vec<Pattern>;
 
 impl Schema {
-    pub fn add_element(&mut self, element: Element) {
-        self.elements.insert(element.name.clone(), element);
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Element {
-    pub name: Tag,
-    pub pos_args: Vec<Pattern>,
-}
-
-impl Element {
-    pub fn new(name: &str, pos_args: Vec<Pattern>) -> Self {
-        Element { name: name.to_string(), pos_args }
+    pub fn add_element(&mut self, name: &str, pos_args: Vec<Pattern>) {
+        self.elements.insert(name.to_string(), pos_args);
     }
 }
 

@@ -4,7 +4,10 @@ use std::collections::HashMap;
 lazy_static! {
     pub static ref SCHEMA: Schema = {
         let mut schema = Schema {
-            start: Pattern::element("chapter"),
+            start: Pattern::Choice(vec![
+                Pattern::element("book"),
+                Pattern::element("chapter"),
+            ]),
             elements: HashMap::new()
         };
 
@@ -16,28 +19,61 @@ lazy_static! {
         ]);
 
         let block = Pattern::Choice(vec![
-            Pattern::para(Pattern::many(inline.clone()))
+            Pattern::para(Pattern::many1(inline.clone())),
+            Pattern::element("stars"),
         ]);
 
         schema.add_element(
-            Element::new(
-                "chapter",
-                vec![
-                    Pattern::many1(inline.clone()),
-                    Pattern::Seq(vec![
-                        Pattern::many(block.clone()),
-                        Pattern::many(Pattern::element("section"))
-                    ])
-                ]
-            ));
+            "book",
+            vec![
+                Pattern::many1(inline.clone()),
+                Pattern::many(Pattern::element("chapter"))
+            ]
+        );
 
         schema.add_element(
-            Element::new(
-                "emph",
-                vec![
-                    Pattern::many(inline.clone())
-                ]
-            ));
+            "chapter",
+            vec![
+                Pattern::many1(inline.clone()),
+                Pattern::Seq(vec![
+                    Pattern::many(block.clone()),
+                    Pattern::many(Pattern::element("section"))
+                ])
+            ]
+        );
+
+        schema.add_element(
+            "section",
+            vec![
+                Pattern::many1(inline.clone()),
+                Pattern::Seq(vec![
+                    Pattern::many(block.clone()),
+                ])
+            ]
+        );
+
+        schema.add_element(
+            "emph",
+            vec![
+                Pattern::many(inline.clone())
+            ]
+        );
+
+        schema.add_element(
+            "remark",
+            vec![
+                Pattern::many(inline.clone())
+            ]
+        );
+
+        schema.add_element(
+            "code",
+            vec![
+                Pattern::many(inline.clone())
+            ]
+        );
+
+        schema.add_element("stars", vec![]);
 
         schema
     };
