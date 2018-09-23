@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::ops::Deref;
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub struct Doc(pub Vec<Item>);
 
 impl Deref for Doc {
@@ -9,7 +9,7 @@ impl Deref for Doc {
     fn deref(&self) -> &Vec<Item> { &self.0 }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub enum Item {
     Text(String, Pos),
     Element(Element),
@@ -33,7 +33,7 @@ impl Item {
     */
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub struct Element {
     pub tag: Tag,
     pub named_args: HashMap<String, Doc>,
@@ -51,7 +51,7 @@ impl Element {
 
 pub type Tag = String;
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub struct Pos {
     pub filename: String, // FIXME: wasteful
     pub line: u64,
