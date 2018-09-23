@@ -38,6 +38,29 @@ pub enum Instance {
     Many(Vec<Instance>),
 }
 
+impl Instance {
+    pub fn unchoice(&self) -> &Self {
+        match self {
+            Instance::Choice(_, i) => &i,
+            _ => &self
+        }
+    }
+
+    pub fn seq(&self) -> &Vec<Instance> {
+        match self {
+            Instance::Seq(is) => is,
+            _ => panic!()
+        }
+    }
+
+    pub fn iter(&self) -> &Vec<Instance> {
+        match self {
+            Instance::Many(is) => is,
+            _ => panic!()
+        }
+    }
+}
+
 pub fn validate(schema: &Schema, doc: &Doc, filename: &str) -> Result<Instance, Error> {
     validate_full_doc(schema, &schema.start, doc,
                       Pos { filename: filename.to_string(), line: 0, column: 0 })
@@ -108,18 +131,22 @@ impl<'a> Cursor<'a> {
     }
 
     fn get_element(&mut self, tag: &Tag) -> Option<&'a Element> {
-        self.skip_ws();
-        if !self.pending_chars.as_str().is_empty() { None }
-        else {
-            match self.items.first() {
-                Some(Item::Element(element)) if &element.tag == tag => {
-                    self.pending_chars = "".chars();
-                    self.items = &self.items[1..];
-                    self.cur_pos = element.pos.clone();
-                    Some(element)
-                }
-                _ => None
+        if !self.pending_chars.clone().all(char::is_whitespace) { return None; }
+
+        let mut items = self.items;
+        while let Some(item) = items.first() {
+            if !item.is_whitespace() { break; }
+            items = &items[1..];
+        }
+
+        match items.first() {
+            Some(Item::Element(element)) if &element.tag == tag => {
+                self.pending_chars = "".chars();
+                self.items = &items[1..];
+                self.cur_pos = element.pos.clone();
+                Some(element)
             }
+            _ => None
         }
     }
 

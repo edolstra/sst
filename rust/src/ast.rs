@@ -15,7 +15,6 @@ pub enum Item {
     Element(Element),
 }
 
-/*
 impl Item {
     pub fn is_whitespace(&self) -> bool {
         match self {
@@ -24,14 +23,15 @@ impl Item {
         }
     }
 
+    /*
     pub fn get_pos(&self) -> &Pos {
         match self {
             Item::Text(_, pos) => pos,
             Item::Element(element) => &element.pos
         }
     }
+    */
 }
-*/
 
 #[derive(Debug, Clone)]
 pub struct Element {
