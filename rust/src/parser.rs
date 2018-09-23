@@ -109,7 +109,7 @@ fn parse_doc(state: &mut State, required_end: Option<&str>) -> Result<Doc, Error
 
                 let mut named_args = HashMap::new();
                 loop {
-                    skip_ws(state);
+                    //skip_ws(state);
                     match state.peek() {
                         Some('[') => {
                             state.next();
@@ -126,7 +126,7 @@ fn parse_doc(state: &mut State, required_end: Option<&str>) -> Result<Doc, Error
 
                 let mut pos_args = vec![];
                 loop {
-                    skip_ws(state);
+                    //skip_ws(state);
                     match state.peek() {
                         Some('{') => {
                             state.next();
@@ -219,11 +219,11 @@ fn parse_regular_tag(state: &mut State) -> Result<Tag, Error> {
 }
 
 fn parse_enclosed_tag(state: &mut State) -> Result<Tag, Error> {
-    skip_ws(state);
+    //skip_ws(state);
     state.eat(|c| c == '{')?;
-    skip_ws(state);
+    //skip_ws(state);
     let tag = parse_regular_tag(state)?;
-    skip_ws(state);
+    //skip_ws(state);
     state.eat(|c| c == '}')?;
     Ok(tag)
 }
