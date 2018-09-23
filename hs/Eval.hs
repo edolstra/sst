@@ -68,4 +68,4 @@ eval ctx filename doc = eval' empty doc
 
     eval'' env [] = []
 
-toMacro v = Macro 0 empty v empty
+toMacro v = Macro 0 empty v empty // FIXME: should be evaluated in macro's env?
