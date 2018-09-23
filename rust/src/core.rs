@@ -20,7 +20,7 @@ lazy_static! {
 
         let block = Pattern::Choice(vec![
             Pattern::para(Pattern::many1(inline.clone())),
-            Pattern::element("stars"),
+            Pattern::element("dinkus"),
         ]);
 
         schema.add_element(
@@ -73,7 +73,7 @@ lazy_static! {
             ]
         );
 
-        schema.add_element("stars", vec![]);
+        schema.add_element("dinkus", vec![]);
 
         schema
     };
