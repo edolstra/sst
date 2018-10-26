@@ -69,6 +69,9 @@ fn toplevel(doc: &Instance, max_width: usize, lines: &mut Lines) {
                 chapter(item, max_width, lines);
             }
         }
+        Instance::Element(tag, children) if tag == "chapter" => {
+            chapter(doc, max_width, lines);
+        }
         _ => panic!(),
     }
 }
@@ -82,6 +85,7 @@ fn chapter(doc: &Instance, max_width: usize, lines: &mut Lines) {
             inlines(title, &mut words);
             words_to_lines(&words, max_width, lines);
             blocks(&body[0], max_width, lines);
+            blocks(&body[1], max_width, lines);
             //let sections = &body[1];
         }
         _ => panic!(),
@@ -103,6 +107,8 @@ fn block(doc: &Instance, max_width: usize, lines: &mut Lines) {
         }
         Instance::Element(tag, children) if tag == "dinkus" => {
             lines.push(Text::new("* * *".to_string()).center(max_width));
+        }
+        Instance::Element(tag, children) if tag == "listing" => {
         }
         _ => panic!()
     }
@@ -126,6 +132,16 @@ fn inlines(doc: &Instance, words: &mut Words) {
                     words.push(Text::unpadded("[".to_string()));
                     inlines(&children[0], words);
                     words.push(Text::unpadded("]".to_string()));
+                }
+                Instance::Element(tag, children) if tag == "filename" => {
+                    words.push(Text::ansi("\x1b[4m".to_string()));
+                    inlines(&children[0], words);
+                    words.push(Text::ansi("\x1b[0m".to_string()));
+                }
+                Instance::Element(tag, children) if tag == "code" => {
+                    words.push(Text::ansi("\x1b[4m".to_string()));
+                    inlines(&children[0], words);
+                    words.push(Text::ansi("\x1b[0m".to_string()));
                 }
                 _ => panic!()
             }
