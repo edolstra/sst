@@ -3,14 +3,15 @@ use schema::*;
 use std::mem;
 use std::str::Chars;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Error {
     Expected(Vec<Expected>, Pos),
     WrongArgCount(Tag, usize, usize, Pos),
+    WrongElementContent(Tag, Pos, Box<Error>),
     SchemaError(Tag),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expected {
     Text,
     Para,
@@ -22,6 +23,7 @@ impl Error {
     fn is_fatal(&self) -> bool {
         match self {
             Error::WrongArgCount(_, _, _, _) => true,
+            Error::WrongElementContent(_, _, _) => true,
             Error::SchemaError(_) => true,
             _ => false
         }
@@ -157,7 +159,7 @@ impl<'a> Cursor<'a> {
 
 pub fn validate_full_doc(schema: &Schema, pattern: &Pattern, doc: &Doc, pos: Pos) -> Result<Instance, Error> {
     let mut cursor = Cursor::new(doc, pos);
-    let instance = validate_doc(schema, pattern, &mut cursor)?;
+    let instance = validate_doc(schema, pattern, true, &mut cursor)?;
     cursor.skip_ws();
     if !cursor.at_end() {
         return Err(Error::Expected(vec![Expected::End], cursor.pos()))
@@ -165,7 +167,7 @@ pub fn validate_full_doc(schema: &Schema, pattern: &Pattern, doc: &Doc, pos: Pos
     Ok(instance)
 }
 
-fn validate_doc(schema: &Schema, pattern: &Pattern, mut cursor: &mut Cursor) -> Result<Instance, Error> {
+fn validate_doc(schema: &Schema, pattern: &Pattern, at_top: bool, mut cursor: &mut Cursor) -> Result<Instance, Error> {
     match pattern {
 
         Pattern::Text => {
@@ -206,7 +208,7 @@ fn validate_doc(schema: &Schema, pattern: &Pattern, mut cursor: &mut Cursor) -> 
             }
             assert!(cursor.in_para == ParaState::No);
             cursor.in_para = ParaState::Start;
-            let instance = validate_doc(schema, pat, cursor)?;
+            let instance = validate_doc(schema, pat, false, cursor)?;
             assert!(cursor.in_para != ParaState::No);
             cursor.in_para = ParaState::No;
             return Ok(Instance::Para(Box::new(instance)));
@@ -226,7 +228,14 @@ fn validate_doc(schema: &Schema, pattern: &Pattern, mut cursor: &mut Cursor) -> 
                             cursor.pos()));
                     }
                     for (d, e) in pos_args_patterns.iter().zip(element.pos_args.iter()) {
-                        instances.push(validate_full_doc(schema, d, e, element.pos.clone())?);
+                        match validate_full_doc(schema, d, e, element.pos.clone()) {
+                            Ok(instance) => instances.push(instance),
+                            Err(err) => if err.is_fatal() {
+                                return Err(err);
+                            } else {
+                                return Err(Error::WrongElementContent(name.to_string(), element.pos.clone(), Box::new(err)));
+                            }
+                        };
                     }
                     return Ok(Instance::Element(name.clone(), instances));
                 } else {
@@ -239,8 +248,8 @@ fn validate_doc(schema: &Schema, pattern: &Pattern, mut cursor: &mut Cursor) -> 
 
         Pattern::Seq(patterns) => {
             let mut instances = vec!();
-            for pat in patterns {
-                instances.push(validate_doc(schema, pat, &mut cursor)?);
+            for (n, pat) in patterns.iter().enumerate() {
+                instances.push(validate_doc(schema, pat, patterns.len() == n + 1 && at_top, &mut cursor)?);
             }
             return Ok(Instance::Seq(instances));
         }
@@ -250,15 +259,19 @@ fn validate_doc(schema: &Schema, pattern: &Pattern, mut cursor: &mut Cursor) -> 
             let pos = cursor.pos();
             for (n, pat) in patterns.iter().enumerate() {
                 let mut c = cursor.clone();
-                match validate_doc(schema, pat, &mut c) {
+                match validate_doc(schema, pat, at_top, &mut c) {
                     Ok(instance) => {
                         mem::replace(cursor, c); // FIXME
                         return Ok(Instance::Choice(n, Box::new(instance)));
                     },
                     Err(err) => {
-                        match err {
-                            Error::Expected(mut exp, _) => expected.append(&mut exp),
-                            _ => return Err(err)
+                        if err.is_fatal() {
+                            return Err(err);
+                        } else {
+                            match err {
+                                Error::Expected(mut exp, _) => expected.append(&mut exp),
+                                _ => return Err(err)
+                            }
                         }
                     }
                 }
@@ -270,12 +283,12 @@ fn validate_doc(schema: &Schema, pattern: &Pattern, mut cursor: &mut Cursor) -> 
             let mut instances = vec!();
             let mut done = false;
             while !done && (max.is_none() || instances.len() < max.unwrap()) {
-                match validate_doc(schema, pattern, &mut cursor) {
+                match validate_doc(schema, pattern, false, &mut cursor) {
                     Ok(instance) => {
                         instances.push(instance);
                     }
                     Err(err) => {
-                        if err.is_fatal() || instances.len() < *min { return Err(err); }
+                        if err.is_fatal() || instances.len() < *min || (at_top && !cursor.at_end()) { return Err(err); }
                         done = true;
                     }
                 }

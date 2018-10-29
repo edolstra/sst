@@ -1,4 +1,4 @@
-{ nixpkgs ? fetchTarball channel:nixos-unstable
+{ nixpkgs ? fetchTarball channel:nixos-18.09
 , pkgs ? import nixpkgs {}
 }:
 

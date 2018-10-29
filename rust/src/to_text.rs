@@ -85,8 +85,24 @@ fn chapter(doc: &Instance, max_width: usize, lines: &mut Lines) {
             inlines(title, &mut words);
             words_to_lines(&words, max_width, lines);
             blocks(&body[0], max_width, lines);
-            blocks(&body[1], max_width, lines);
-            //let sections = &body[1];
+            for s in body[1].iter() {
+                simplesect(s, max_width, lines);
+            }
+            //let sections = &body[2];
+        }
+        _ => panic!(),
+    }
+}
+
+fn simplesect(doc: &Instance, max_width: usize, lines: &mut Lines) {
+    match doc.unchoice() {
+        Instance::Element(tag, children) if tag == "simplesect" => {
+            let title = &children[0];
+            let body = &children[1].seq();
+            let mut words = vec![];
+            inlines(title, &mut words);
+            words_to_lines(&words, max_width, lines);
+            blocks(&body[0], max_width, lines);
         }
         _ => panic!(),
     }
@@ -110,7 +126,7 @@ fn block(doc: &Instance, max_width: usize, lines: &mut Lines) {
         }
         Instance::Element(tag, children) if tag == "listing" => {
         }
-        _ => panic!()
+        _ => panic!("Unsupported: {:?}", doc)
     }
 }
 

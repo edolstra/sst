@@ -24,6 +24,7 @@ lazy_static! {
             Pattern::para(Pattern::many1(inline.clone())),
             Pattern::element("dinkus"),
             Pattern::element("listing"),
+            Pattern::element("screen"),
         ]);
 
         let title = Pattern::many1(inline.clone());
@@ -89,6 +90,13 @@ lazy_static! {
 
         schema.add_element(
             "listing",
+            vec![
+                Pattern::Text
+            ]
+        );
+
+        schema.add_element(
+            "screen",
             vec![
                 Pattern::Text
             ]
