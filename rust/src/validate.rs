@@ -61,6 +61,17 @@ impl Instance {
             _ => panic!()
         }
     }
+
+    pub fn is_whitespace(&self) -> bool {
+        match self {
+            Instance::Text(s) => s.chars().all(char::is_whitespace),
+            Instance::Element(_, _) => false,
+            Instance::Para(i) => i.is_whitespace(),
+            Instance::Seq(is) => is.iter().all(Instance::is_whitespace),
+            Instance::Choice(_, i) => i.is_whitespace(),
+            Instance::Many(is) => is.iter().all(Instance::is_whitespace),
+        }
+    }
 }
 
 pub fn validate(schema: &Schema, doc: &Doc, filename: &str) -> Result<Instance, Error> {
@@ -155,6 +166,12 @@ impl<'a> Cursor<'a> {
     fn at_end(&self) -> bool {
         self.in_para == ParaState::End || (self.items.is_empty() && self.pending_chars.as_str().is_empty())
     }
+
+    fn at_end_ws(&self) -> bool {
+        let mut c = self.clone();
+        c.skip_ws();
+        c.at_end()
+    }
 }
 
 pub fn validate_full_doc(schema: &Schema, pattern: &Pattern, doc: &Doc, pos: Pos) -> Result<Instance, Error> {
@@ -203,15 +220,19 @@ fn validate_doc(schema: &Schema, pattern: &Pattern, at_top: bool, mut cursor: &m
         }
 
         Pattern::Para(pat) => {
-            if cursor.at_end() {
+            assert!(cursor.in_para == ParaState::No);
+            if cursor.at_end_ws() {
                 return Err(Error::Expected(vec![Expected::Para], cursor.pos()));
             }
-            assert!(cursor.in_para == ParaState::No);
             cursor.in_para = ParaState::Start;
             let instance = validate_doc(schema, pat, false, cursor)?;
             assert!(cursor.in_para != ParaState::No);
             cursor.in_para = ParaState::No;
-            return Ok(Instance::Para(Box::new(instance)));
+            if instance.is_whitespace() {
+                return Err(Error::Expected(vec![Expected::Para], cursor.pos()));
+            } else {
+                return Ok(Instance::Para(Box::new(instance)));
+            }
         }
 
         Pattern::Element(name) => {
@@ -288,7 +309,7 @@ fn validate_doc(schema: &Schema, pattern: &Pattern, at_top: bool, mut cursor: &m
                         instances.push(instance);
                     }
                     Err(err) => {
-                        if err.is_fatal() || instances.len() < *min || (at_top && !cursor.at_end()) { return Err(err); }
+                        if err.is_fatal() || instances.len() < *min || (at_top && !cursor.at_end_ws()) { return Err(err); }
                         done = true;
                     }
                 }
