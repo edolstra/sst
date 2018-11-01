@@ -18,6 +18,12 @@ lazy_static! {
             Pattern::element("code"),
             Pattern::element("remark"),
             Pattern::element("filename"),
+            Pattern::element("envar"),
+            Pattern::element("uri"),
+            Pattern::element("command"),
+            Pattern::element("link"),
+            Pattern::element("xref"),
+            Pattern::element("replaceable"),
         ]);
 
         let block = Pattern::Choice(vec![
@@ -25,9 +31,15 @@ lazy_static! {
             Pattern::element("dinkus"),
             Pattern::element("listing"),
             Pattern::element("screen"),
+            Pattern::element("procedure"),
         ]);
 
         let title = Pattern::many1(inline.clone());
+
+        let uri_string = Pattern::Text;
+
+        // FIXME: should be a distinct type for validation.
+        let id_string = Pattern::Text;
 
         schema.add_element(
             "book",
@@ -63,6 +75,19 @@ lazy_static! {
                 title.clone(),
                 Pattern::Seq(vec![
                     Pattern::many(block.clone()),
+                    Pattern::many(Pattern::element("simplesect")),
+                    Pattern::many(Pattern::element("subsection"))
+                ])
+            ]
+        );
+
+        schema.add_element(
+            "subsection",
+            vec![
+                title.clone(),
+                Pattern::Seq(vec![
+                    Pattern::many(block.clone()),
+                    Pattern::many(Pattern::element("simplesect")),
                 ])
             ]
         );
@@ -77,7 +102,7 @@ lazy_static! {
             ]
         );
 
-        for tag in ["emph", "remark", "code", "filename"].iter() {
+        for tag in ["emph", "remark", "code", "filename", "envar", "uri", "command", "replaceable"].iter() {
             schema.add_element(
                 tag,
                 vec![
@@ -86,19 +111,55 @@ lazy_static! {
             );
         }
 
+        schema.add_element(
+            "link",
+            vec![
+                uri_string.clone(),
+                Pattern::many(inline.clone())
+            ]
+        );
+
+        schema.add_element(
+            "xref",
+            vec![
+                id_string.clone()
+            ]
+        );
+
         schema.add_element("dinkus", vec![]);
 
         schema.add_element(
             "listing",
             vec![
-                Pattern::Text
+                Pattern::many(
+                    Pattern::Text
+                )
             ]
         );
 
         schema.add_element(
             "screen",
             vec![
-                Pattern::Text
+                Pattern::many(
+                    Pattern::Choice(vec![
+                        Pattern::Text,
+                        Pattern::element("replaceable"),
+                    ])
+                )
+            ]
+        );
+
+        schema.add_element(
+            "procedure",
+            vec![
+                Pattern::many(Pattern::element("step")),
+            ]
+        );
+
+        schema.add_element(
+            "step",
+            vec![
+                Pattern::many(block.clone()),
             ]
         );
 

@@ -12,11 +12,12 @@ mod eval;
 mod schema;
 mod validate;
 mod core;
+mod number;
 mod to_text;
+mod text_layout;
 
 use std::fs;
-use std::env;
-use std::io::{self, Write};
+use std::io::{Write};
 use std::process::{Command, Stdio};
 use clap::{Arg, App, SubCommand};
 
@@ -49,7 +50,7 @@ fn show_in_pager(text: &str) {
         process.stdin.as_mut().unwrap().write_all(text.as_bytes())
             .expect("Couldn't write bytes to pager");
 
-        process.wait();
+        process.wait().unwrap();
 
     } else {
         print!("{}", text);
@@ -117,6 +118,7 @@ fn main() {
     else if let Some(matches) = matches.subcommand_matches("read") {
         let filename = matches.value_of("INPUT").unwrap();
         let instance = validate_file(&filename);
+        //text_layout::layout_test();
         let text = to_text::to_text(&instance, 80);
         show_in_pager(&text);
     }

@@ -12,6 +12,7 @@ pub enum Error {
     WrongDefArgCount(usize),
     InvalidMacroName,
     BadArity,
+    BadStrip(Pos),
     BadInclude(Pos),
     IOError(Pos, String, io::Error),
 }
@@ -68,6 +69,11 @@ fn eval_into(items: &mut Vec<Item>, mut env: Env, doc: &Doc) -> Result<(), Error
                 }
 
                 else if elem.tag == "#" { }
+
+                else if elem.tag == "strip" {
+                    if elem.pos_args.len() != 1 { return Err(Error::BadStrip(elem.pos.clone())); }
+                    eval_into(items, env.clone(), &elem.pos_args[0])?;
+                }
 
                 else if elem.tag == "include" {
                     let (filename, file) = read_file_from(&elem)?;
