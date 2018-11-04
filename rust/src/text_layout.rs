@@ -1,6 +1,7 @@
 use std::mem;
 use std::cmp;
 
+#[derive(Debug, Clone)]
 pub struct Block {
     margin_top: usize,
     margin_bottom: usize,
@@ -17,6 +18,7 @@ impl Block {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum Content {
     Para(Texts),
     Pre(Texts),
@@ -230,10 +232,10 @@ fn layout(max_width: usize, mut margin_top_min: usize, block: &Block, lines: &mu
                     }
 
                     lines.push(line);
+                }
 
-                    if row_index + 1 < rows.len() {
-                        lines.push(vec![]);
-                    }
+                if row_index + 1 < rows.len() {
+                    lines.push(vec![]);
                 }
             }
         }
