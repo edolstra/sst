@@ -23,7 +23,8 @@ pub fn to_text(doc: &Instance, max_width: usize) -> String {
 impl<'doc> ToText<'doc> {
 
     fn toplevel(&self, doc: &Instance, blocks: &mut Blocks) {
-        match doc.unchoice() {
+        let doc = doc.unchoice();
+        match doc {
             Instance::Element(tag, children) if tag == "book" => {
                 self.book(doc, blocks);
             }
@@ -38,7 +39,7 @@ impl<'doc> ToText<'doc> {
     }
 
     fn book(&self, doc: &Instance, blocks: &mut Blocks) {
-        match doc.unchoice() {
+        match doc {
             Instance::Element(tag, children) if tag == "book" => {
                 let title = &children[0];
                 let body = &children[1];
@@ -54,7 +55,7 @@ impl<'doc> ToText<'doc> {
     }
 
     fn part(&self, doc: &Instance, blocks: &mut Blocks) {
-        match doc.unchoice() {
+        match doc {
             Instance::Element(tag, children) if tag == "part" => {
                 let title = &children[0];
                 let body = &children[1];
@@ -74,7 +75,8 @@ impl<'doc> ToText<'doc> {
     }
 
     fn emit_title(&self, doc: &Instance, blocks: &mut Blocks) {
-        let toc_entry = self.numbers.get_toc_entry(doc).unwrap();
+        let toc_entry = self.numbers.get_toc_entry(doc)
+            .expect(&format!("Expected TOC entry for: {:?}", doc));
         let mut texts = vec![];
         texts.push(Text::Text(toc_entry.to_string()));
         texts.push(Text::Text(" ".to_string()));
@@ -83,7 +85,7 @@ impl<'doc> ToText<'doc> {
     }
 
     fn chapter(&self, doc: &Instance, blocks: &mut Blocks) {
-        match doc.unchoice() {
+        match doc {
             Instance::Element(tag, children) if tag == "chapter" => {
                 let title = &children[0];
                 let body = &children[1].seq();
@@ -101,7 +103,7 @@ impl<'doc> ToText<'doc> {
     }
 
     fn section(&self, doc: &Instance, blocks: &mut Blocks) {
-        match doc.unchoice() {
+        match doc {
             Instance::Element(tag, children) if tag == "section" => {
                 let title = &children[0];
                 let body = &children[1].seq();
@@ -119,7 +121,7 @@ impl<'doc> ToText<'doc> {
     }
 
     fn subsection(&self, doc: &Instance, blocks: &mut Blocks) {
-        match doc.unchoice() {
+        match doc {
             Instance::Element(tag, children) if tag == "subsection" => {
                 let title = &children[0];
                 let body = &children[1].seq();
@@ -134,7 +136,7 @@ impl<'doc> ToText<'doc> {
     }
 
     fn simplesect(&self, doc: &Instance, blocks: &mut Blocks) {
-        match doc.unchoice() {
+        match doc {
             Instance::Element(tag, children) if tag == "simplesect" => {
                 let title = &children[0];
                 let body = &children[1].seq();
@@ -172,6 +174,21 @@ impl<'doc> ToText<'doc> {
                 ]])));
             }
             Instance::Element(tag, children) if tag == "procedure" => {
+                let mut rows = vec![];
+                for (n, step) in children[0].many().iter().enumerate() {
+                    let mut blocks = vec![];
+                    match step {
+                        Instance::Element(tag, children) if tag == "step" => {
+                            self.blocks(&children[0], &mut blocks);
+                        }
+                        _ => unreachable!()
+                    }
+                    rows.push(vec![
+                        Block::new(Content::Pre(vec![Text::Text(format!("{}.", n + 1))])),
+                        Block::new(Content::TB(blocks)),
+                    ]);
+                }
+                blocks.push(Block::new(Content::Table(rows)));
             }
             _ => panic!("Unsupported: {:?}", doc.unchoice())
         }
@@ -204,9 +221,9 @@ impl<'doc> ToText<'doc> {
                     Instance::Element(tag, children) if tag == "link" => {
                         self.inlines(&children[1], texts);
                         if let Instance::Text(s) = &children[0] {
-                            texts.push(Text::Text((" (".to_string())));
+                            texts.push(Text::Text(" (".to_string()));
                             texts.push(Text::Styled(Style::Bold, vec![Text::Text((s.clone()))]));
-                            texts.push(Text::Text((")".to_string())));
+                            texts.push(Text::Text(")".to_string()));
                         }
                     }
                     _ => {

@@ -55,6 +55,13 @@ impl Instance {
         }
     }
 
+    pub fn many(&self) -> &Vec<Instance> {
+        match self {
+            Instance::Many(is) => is,
+            _ => panic!()
+        }
+    }
+
     pub fn iter(&self) -> &Vec<Instance> {
         match self {
             Instance::Many(is) => is,
