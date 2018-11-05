@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 #[derive(Serialize, Debug, Clone)]
 pub struct Doc(pub Vec<Item>);
@@ -7,6 +7,10 @@ pub struct Doc(pub Vec<Item>);
 impl Deref for Doc {
     type Target = Vec<Item>;
     fn deref(&self) -> &Vec<Item> { &self.0 }
+}
+
+impl DerefMut for Doc {
+    fn deref_mut(&mut self) -> &mut Vec<Item> { &mut self.0 }
 }
 
 #[derive(Serialize, Debug, Clone)]

@@ -12,10 +12,6 @@ impl Block {
     pub fn new(content: Content) -> Self {
         Block { margin_top: 1, margin_bottom: 1, content }
     }
-
-    pub fn with_margin(margin_top: usize, margin_bottom: usize, content: Content) -> Self {
-        Block { margin_top, margin_bottom, content }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -169,6 +165,11 @@ fn layout(max_width: usize, mut margin_top_min: usize, block: &Block, lines: &mu
         Content::Pre(text) => {
             let mut line = vec![];
             flatten_texts(text, &FullStyle::new(), &mut line);
+            let mut pop_last = false;
+            if let Some(l) = line.last() {
+                if l.1 == '\n' { pop_last = true; }
+            }
+            if pop_last { line.pop(); }
             for l in line.split(|c| c.1 == '\n') {
                 lines.push(l.to_vec());
             }
