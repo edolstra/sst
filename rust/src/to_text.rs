@@ -25,13 +25,13 @@ impl<'doc> ToText<'doc> {
     fn toplevel(&self, doc: &Instance, blocks: &mut Blocks) {
         let doc = doc.unchoice();
         match doc {
-            Instance::Element(tag, children) if tag == "book" => {
+            Instance::Element(tag, _) if tag == "book" => {
                 self.book(doc, blocks);
             }
-            Instance::Element(tag, children) if tag == "part" => {
+            Instance::Element(tag, _) if tag == "part" => {
                 self.part(doc, blocks);
             }
-            Instance::Element(tag, children) if tag == "chapter" => {
+            Instance::Element(tag, _) if tag == "chapter" => {
                 self.chapter(doc, blocks);
             }
             _ => panic!(),
@@ -87,7 +87,6 @@ impl<'doc> ToText<'doc> {
     fn chapter(&self, doc: &Instance, blocks: &mut Blocks) {
         match doc {
             Instance::Element(tag, children) if tag == "chapter" => {
-                let title = &children[0];
                 let body = &children[1].seq();
                 self.emit_title(&doc, blocks);
                 self.blocks(&body[0], blocks);
@@ -105,7 +104,6 @@ impl<'doc> ToText<'doc> {
     fn section(&self, doc: &Instance, blocks: &mut Blocks) {
         match doc {
             Instance::Element(tag, children) if tag == "section" => {
-                let title = &children[0];
                 let body = &children[1].seq();
                 self.emit_title(&doc, blocks);
                 self.blocks(&body[0], blocks);
@@ -123,7 +121,6 @@ impl<'doc> ToText<'doc> {
     fn subsection(&self, doc: &Instance, blocks: &mut Blocks) {
         match doc {
             Instance::Element(tag, children) if tag == "subsection" => {
-                let title = &children[0];
                 let body = &children[1].seq();
                 self.emit_title(&doc, blocks);
                 self.blocks(&body[0], blocks);
@@ -222,7 +219,7 @@ impl<'doc> ToText<'doc> {
                         self.inlines(&children[1], texts);
                         if let Instance::Text(s) = &children[0] {
                             texts.push(Text::Text(" (".to_string()));
-                            texts.push(Text::Styled(Style::Bold, vec![Text::Text((s.clone()))]));
+                            texts.push(Text::Styled(Style::Bold, vec![Text::Text(s.clone())]));
                             texts.push(Text::Text(")".to_string()));
                         }
                     }
