@@ -310,7 +310,7 @@ fn validate_doc(schema: &Schema, pattern: &Pattern, at_top: bool, mut cursor: &m
         Pattern::Many(min, max, pattern) => {
             let mut instances = vec!();
             let mut done = false;
-            while !done && (max.is_none() || instances.len() < max.unwrap()) {
+            while !done && (max.is_none() || instances.len() < max.unwrap()) && !cursor.at_end_ws() {
                 match validate_doc(schema, pattern, false, &mut cursor) {
                     Ok(instance) => {
                         instances.push(instance);
