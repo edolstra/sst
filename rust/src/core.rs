@@ -15,8 +15,9 @@ lazy_static! {
         let inline = Pattern::Choice(vec![
             Pattern::Text,
             Pattern::element("emph"),
+            Pattern::element("strong"),
             Pattern::element("code"),
-            Pattern::element("remark"),
+            Pattern::element("todo"),
             Pattern::element("filename"),
             Pattern::element("envar"),
             Pattern::element("uri"),
@@ -31,6 +32,7 @@ lazy_static! {
             Pattern::element("dinkus"),
             Pattern::element("listing"),
             Pattern::element("screen"),
+            Pattern::element("ul"),
             Pattern::element("procedure"),
         ]);
 
@@ -102,7 +104,7 @@ lazy_static! {
             ]
         );
 
-        for tag in ["emph", "remark", "code", "filename", "envar", "uri", "command", "replaceable"].iter() {
+        for tag in ["emph", "strong", "todo", "code", "filename", "envar", "uri", "command", "replaceable"].iter() {
             schema.add_element(
                 tag,
                 vec![
@@ -146,6 +148,21 @@ lazy_static! {
                         Pattern::element("replaceable"),
                     ])
                 )
+            ]
+        );
+
+        // ul == unordered list
+        schema.add_element(
+            "ul",
+            vec![
+                Pattern::many(Pattern::element("li")),
+            ]
+        );
+
+        schema.add_element(
+            "li",
+            vec![
+                Pattern::many(block.clone()),
             ]
         );
 

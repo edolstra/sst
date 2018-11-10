@@ -170,12 +170,12 @@ impl<'doc> ToText<'doc> {
                     Block::new(Content::Pre(texts))
                 ]])));
             }
-            Instance::Element(tag, children) if tag == "procedure" => {
+            Instance::Element(tag, children) if tag == "ul" || tag == "procedure" => {
                 let mut rows = vec![];
                 for (n, step) in children[0].many().iter().enumerate() {
                     let mut blocks = vec![];
                     match step {
-                        Instance::Element(tag, children) if tag == "step" => {
+                        Instance::Element(tag, children) if tag == "li" || tag == "step" => {
                             self.blocks(&children[0], &mut blocks);
                         }
                         _ => unreachable!()
@@ -203,13 +203,18 @@ impl<'doc> ToText<'doc> {
                         self.inlines(&children[0], &mut texts2);
                         texts.push(Text::Styled(Style::Italic, texts2));
                     }
-                    /*
-                    Instance::Element(tag, children) if tag == "remark" => {
-                        words.push(Text::unpadded("[".to_string()));
-                        self.inlines(&children[0], words);
-                        words.push(Text::unpadded("]".to_string()));
+                    Instance::Element(tag, children) if tag == "strong" => {
+                        let mut texts2 = vec![];
+                        self.inlines(&children[0], &mut texts2);
+                        texts.push(Text::Styled(Style::Bold, texts2));
                     }
-                    */
+                    Instance::Element(tag, children) if tag == "todo" => {
+                        let mut texts2 = vec![];
+                        texts2.push(Text::Text("[".to_string()));
+                        self.inlines(&children[0], &mut texts2);
+                        texts2.push(Text::Text("]".to_string()));
+                        texts.push(Text::Styled(Style::Bold, vec![Text::Styled(Style::Color(Color::Red), texts2)]));
+                    }
                     Instance::Element(tag, children) if tag == "code" || tag == "filename" => {
                         let mut texts2 = vec![];
                         self.inlines(&children[0], &mut texts2);

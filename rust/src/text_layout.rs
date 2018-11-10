@@ -37,7 +37,8 @@ pub enum Style {
     Bold,
     Italic,
     Underline,
-    Strikethrough
+    Strikethrough,
+    Color(Color),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -46,6 +47,13 @@ struct FullStyle {
     italic: bool,
     underline: bool,
     strikethrough: bool,
+    color: Color
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum Color {
+    Normal,
+    Red,
 }
 
 impl FullStyle {
@@ -55,6 +63,7 @@ impl FullStyle {
             italic: false,
             underline: false,
             strikethrough: false,
+            color: Color::Normal,
         }
     }
 
@@ -65,6 +74,7 @@ impl FullStyle {
             Style::Italic => { res.italic = true; }
             Style::Underline => { res.underline = true; }
             Style::Strikethrough => { res.strikethrough = true; }
+            Style::Color(color) => { res.color = *color; }
         };
         res
     }
@@ -240,8 +250,6 @@ fn layout(max_width: usize, mut margin_top_min: usize, block: &Block, lines: &mu
                 }
             }
         }
-
-        _ => unimplemented!()
     }
 }
 
@@ -274,6 +282,9 @@ fn emit_ansi_delta(dest: &mut String, old: &FullStyle, new: &FullStyle) {
         }
         if new.strikethrough {
             dest.push_str(";9");
+        }
+        if new.color == Color::Red {
+            dest.push_str(";31");
         }
         dest.push_str("m");
     }
