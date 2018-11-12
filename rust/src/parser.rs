@@ -116,10 +116,10 @@ fn parse_doc<'a>(state: &mut State, required_end: Option<&str>) -> Result<(Doc, 
     let mut stripped_items = vec![];
 
     /* Strip indentation. */
-    for item in doc.iter() {
+    for (n, item) in doc.iter().enumerate() {
         match item {
             Item::Text(s, pos) => {
-                let i = strip_indent(&s, &indent.s);
+                let i = strip_indent(&s, &indent.s, n == 0);
                 stripped_items.push(Item::Text(i, pos.clone()))
             }
             _ => stripped_items.push(item.clone()) // FIXME
@@ -347,24 +347,26 @@ fn unify_indents(s1: Indent, s2: Indent) -> Indent {
     }
 }
 
-fn strip_indent(s: &str, indent: &str) -> String {
+fn strip_indent(s: &str, indent: &str, strip_first: bool) -> String {
     let mut res = String::new();
     let mut i = s.chars().peekable();
 
     loop {
         /* Skip the indentation. */
-        let mut j = indent.chars();
-        loop {
-            if let Some(c1) = i.peek() {
-                if let Some(c2) = j.next() {
-                    if c1 != &c2 { break; }
+        if strip_first {
+            let mut j = indent.chars();
+            loop {
+                if let Some(c1) = i.peek() {
+                    if let Some(c2) = j.next() {
+                        if c1 != &c2 { break; }
+                    } else {
+                        break;
+                    }
                 } else {
-                    break;
+                    return res;
                 }
-            } else {
-                return res;
+                i.next();
             }
-            i.next();
         }
 
         /* Copy all characters up to and including the end-of-line. */
