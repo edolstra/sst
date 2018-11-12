@@ -25,14 +25,23 @@ impl<'doc> ToText<'doc> {
     fn toplevel(&self, doc: &Instance, blocks: &mut Blocks) {
         let doc = doc.unchoice();
         match doc {
+            Instance::Many(_) => {
+                self.blocks(doc, blocks);
+            }
             Instance::Element(tag, _) if tag == "book" => {
                 self.book(doc, blocks);
+            }
+            Instance::Element(tag, _) if tag == "article" => {
+                self.article(doc, blocks);
             }
             Instance::Element(tag, _) if tag == "part" => {
                 self.part(doc, blocks);
             }
             Instance::Element(tag, _) if tag == "chapter" => {
                 self.chapter(doc, blocks);
+            }
+            Instance::Element(tag, _) if tag == "section" => {
+                self.section(doc, blocks);
             }
             _ => panic!(),
         }
@@ -48,6 +57,26 @@ impl<'doc> ToText<'doc> {
                 blocks.push(Block::new(Content::Para(texts)));
                 for item in body.iter() {
                     self.chapter(item, blocks);
+                }
+            }
+            _ => panic!(),
+        }
+    }
+
+    fn article(&self, doc: &Instance, blocks: &mut Blocks) {
+        match doc {
+            Instance::Element(tag, children) if tag == "article" => {
+                let title = &children[0];
+                let body = &children[1].seq();
+                let mut texts = vec![];
+                self.inlines(title, &mut texts);
+                blocks.push(Block::new(Content::Para(texts)));
+                self.blocks(&body[0], blocks);
+                for s in body[1].iter() {
+                    self.simplesect(s, blocks);
+                }
+                for item in body[2].iter() {
+                    self.section(item, blocks);
                 }
             }
             _ => panic!(),
@@ -81,7 +110,8 @@ impl<'doc> ToText<'doc> {
         texts.push(Text::Text(toc_entry.to_string()));
         texts.push(Text::Text(" ".to_string()));
         self.inlines(toc_entry.title, &mut texts);
-        blocks.push(Block::new(Content::Para(vec![Text::Styled(Style::Underline, texts)])));
+        blocks.push(Block::new(Content::Para(
+            vec![Text::Styled(Style::Bold, vec![Text::Styled(Style::Underline, texts)])])));
     }
 
     fn chapter(&self, doc: &Instance, blocks: &mut Blocks) {
@@ -170,7 +200,7 @@ impl<'doc> ToText<'doc> {
                     Block::new(Content::Pre(texts))
                 ]])));
             }
-            Instance::Element(tag, children) if tag == "ul" || tag == "procedure" => {
+            Instance::Element(tag, children) if tag == "ol" || tag == "ul" || tag == "procedure" => {
                 let mut rows = vec![];
                 for (n, step) in children[0].many().iter().enumerate() {
                     let mut blocks = vec![];
@@ -181,11 +211,31 @@ impl<'doc> ToText<'doc> {
                         _ => unreachable!()
                     }
                     rows.push(vec![
-                        Block::new(Content::Pre(vec![Text::Text(format!("{}.", n + 1))])),
+                        Block::new(Content::Pre(vec![Text::Text(if tag == "ul" { "*".to_string() } else { format!("{}.", n + 1) })])),
                         Block::new(Content::TB(blocks)),
                     ]);
                 }
                 blocks.push(Block::new(Content::Table(rows)));
+            }
+            Instance::Element(tag, children) if tag == "namedlist" => {
+                for step in children[0].many().iter() {
+                    match step {
+                        Instance::Element(tag, children) if tag == "item" => {
+                            let mut texts = vec![];
+                            texts.push(Text::Text("* ".to_string()));
+                            self.inlines(&children[0], &mut texts);
+                            blocks.push(Block::new(Content::Para(vec![Text::Styled(Style::Bold, texts)])));
+
+                            let mut blocks2 = vec![];
+                            self.blocks(&children[1], &mut blocks2);
+                            blocks.push(Block::new(Content::Table(vec![vec![
+                                Block::new(Content::Pre(vec![Text::Text(" ".to_string())])),
+                                Block::new(Content::TB(blocks2))
+                            ]])));
+                        }
+                        _ => unreachable!()
+                    }
+                }
             }
             _ => panic!("Unsupported: {:?}", doc.unchoice())
         }

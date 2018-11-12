@@ -3,15 +3,6 @@ use std::collections::HashMap;
 
 lazy_static! {
     pub static ref SCHEMA: Schema = {
-        let mut schema = Schema {
-            start: Pattern::Choice(vec![
-                Pattern::element("book"),
-                Pattern::element("part"),
-                Pattern::element("chapter"),
-            ]),
-            elements: HashMap::new()
-        };
-
         let inline = Pattern::Choice(vec![
             Pattern::Text,
             Pattern::element("emph"),
@@ -33,7 +24,9 @@ lazy_static! {
             Pattern::element("listing"),
             Pattern::element("screen"),
             Pattern::element("ul"),
+            Pattern::element("ol"),
             Pattern::element("procedure"),
+            Pattern::element("namedlist"),
         ]);
 
         let title = Pattern::many1(inline.clone());
@@ -43,11 +36,35 @@ lazy_static! {
         // FIXME: should be a distinct type for validation.
         let id_string = Pattern::Text;
 
+        let mut schema = Schema {
+            start: Pattern::Choice(vec![
+                Pattern::many1(block.clone()),
+                Pattern::element("book"),
+                Pattern::element("article"),
+                Pattern::element("part"),
+                Pattern::element("chapter"),
+                Pattern::element("section"),
+            ]),
+            elements: HashMap::new()
+        };
+
         schema.add_element(
             "book",
             vec![
                 title.clone(),
                 Pattern::many(Pattern::element("chapter"))
+            ]
+        );
+
+        schema.add_element(
+            "article",
+            vec![
+                title.clone(),
+                Pattern::Seq(vec![
+                    Pattern::many(block.clone()),
+                    Pattern::many(Pattern::element("simplesect")),
+                    Pattern::many(Pattern::element("section"))
+                ])
             ]
         );
 
@@ -166,6 +183,15 @@ lazy_static! {
             ]
         );
 
+        // ol == ordered list
+        schema.add_element(
+            "ol",
+            vec![
+                Pattern::many(Pattern::element("li")),
+            ]
+        );
+
+        // FIXME: remove?
         schema.add_element(
             "procedure",
             vec![
@@ -176,6 +202,21 @@ lazy_static! {
         schema.add_element(
             "step",
             vec![
+                Pattern::many(block.clone()),
+            ]
+        );
+
+        schema.add_element(
+            "namedlist",
+            vec![
+                Pattern::many(Pattern::element("item")),
+            ]
+        );
+
+        schema.add_element(
+            "item",
+            vec![
+                Pattern::many(inline.clone()),
                 Pattern::many(block.clone()),
             ]
         );
