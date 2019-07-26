@@ -1,5 +1,4 @@
-use ast::*;
-use parser;
+use crate::{ast::*, parser};
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::fs;

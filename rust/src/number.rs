@@ -1,4 +1,4 @@
-use validate::Instance;
+use crate::validate::Instance;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::hash::{Hash, Hasher};

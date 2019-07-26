@@ -1,6 +1,4 @@
-use validate::*;
-use number;
-use text_layout::*;
+use crate::{validate::*, number, text_layout::*};
 
 struct ToText<'doc> {
     numbers: number::Numbers<'doc>,

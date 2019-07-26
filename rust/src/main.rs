@@ -1,11 +1,3 @@
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
-extern crate clap;
-extern crate libc;
-
 mod ast;
 mod parser;
 mod eval;

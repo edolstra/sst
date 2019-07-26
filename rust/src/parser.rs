@@ -1,4 +1,4 @@
-use ast::*;
+use crate::ast::*;
 use std::str::Chars;
 use std::iter::Peekable;
 use std::mem;

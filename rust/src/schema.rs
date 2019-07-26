@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use ast::Tag;
+use crate::ast::Tag;
 
 pub struct Schema {
     pub start: Pattern,

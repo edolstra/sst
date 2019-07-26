@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
+use serde::Serialize;
 
 #[derive(Serialize, Debug, Clone)]
 pub struct Doc(pub Vec<Item>);
