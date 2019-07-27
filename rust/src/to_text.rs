@@ -95,9 +95,11 @@ impl<'doc> ToText<'doc> {
         }
     }
 
+    /*
     fn get_title(&self, doc: &Instance) -> String {
         self.numbers.get_toc_entry(doc).unwrap().to_string()
     }
+    */
 
     fn emit_title(&self, doc: &Instance, blocks: &mut Blocks) {
         let toc_entry = self
@@ -192,8 +194,16 @@ impl<'doc> ToText<'doc> {
                 self.inlines(para, &mut texts);
                 blocks.push(Block::new(Content::Para(texts)));
             }
-            Instance::Element(tag, children) if tag == "dinkus" => {
-                //lines.push(Text::new("* * *".to_string()).center(max_width));
+            Instance::Element(tag, _) if tag == "dinkus" => {
+                let s = "* * *";
+                blocks.push(Block::new(Content::Pre(vec![
+                    // FIXME: move centering into text_layout.rs
+                    Text::Text(
+                        " ".to_string()
+                            .repeat(self.max_width.saturating_sub(s.len()) / 2),
+                    ),
+                    Text::Styled(Style::Bold, vec![Text::Text(s.to_string())]),
+                ])));
             }
             Instance::Element(tag, children) if tag == "listing" || tag == "screen" => {
                 let mut texts = vec![];

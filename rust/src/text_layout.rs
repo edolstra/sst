@@ -100,7 +100,7 @@ type StyledLines = Vec<StyledLine>;
 fn layout(max_width: usize, mut margin_top_min: usize, block: &Block, lines: &mut StyledLines) {
     // FIXME: only emit margin when we emit some lines.
     if !lines.is_empty() {
-        for n in 0..cmp::max(margin_top_min, block.margin_top) {
+        for _ in 0..cmp::max(margin_top_min, block.margin_top) {
             lines.push(vec![]);
         }
     }
@@ -255,7 +255,7 @@ fn layout(max_width: usize, mut margin_top_min: usize, block: &Block, lines: &mu
             for (row_index, row) in rows.iter().enumerate() {
                 for line_nr in 0..row_heights[row_index] {
                     let mut line = vec![];
-                    for (column_index, column) in row.iter().enumerate() {
+                    for (column_index, _) in row.iter().enumerate() {
                         let child = &children[column_index][row_index];
                         let l = if line_nr < child.len() {
                             children[column_index][row_index][line_nr].clone() // FIXME: move
@@ -265,7 +265,7 @@ fn layout(max_width: usize, mut margin_top_min: usize, block: &Block, lines: &mu
                         let l_width = l.len();
                         line.extend(l);
                         if column_index + 1 < nr_columns {
-                            for n in 0..1 + column_widths[column_index] - l_width {
+                            for _ in 0..1 + column_widths[column_index] - l_width {
                                 line.push((FullStyle::new(), ' '));
                             }
                         }
