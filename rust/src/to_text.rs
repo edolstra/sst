@@ -14,7 +14,7 @@ pub fn to_text(doc: &Instance, max_width: usize) -> String {
     let mut blocks = vec![];
     state.toplevel(doc, &mut blocks);
 
-    format(max_width, &Block::new(Content::TB(blocks)))
+    format(max_width, &Content::TB(blocks).into())
 }
 
 impl<'doc> ToText<'doc> {
@@ -50,7 +50,7 @@ impl<'doc> ToText<'doc> {
                 let body = &children[1];
                 let mut texts = vec![];
                 self.inlines(title, &mut texts);
-                blocks.push(Block::new(Content::Para(texts)));
+                blocks.push(Content::Para(texts).into());
                 for item in body.iter() {
                     self.chapter(item, blocks);
                 }
@@ -66,7 +66,7 @@ impl<'doc> ToText<'doc> {
                 let body = &children[1].seq();
                 let mut texts = vec![];
                 self.inlines(title, &mut texts);
-                blocks.push(Block::new(Content::Para(texts)));
+                blocks.push(Content::Para(texts).into());
                 self.blocks(&body[0], blocks);
                 for s in body[1].iter() {
                     self.simplesect(s, blocks);
@@ -86,7 +86,7 @@ impl<'doc> ToText<'doc> {
                 let body = &children[1];
                 let mut texts = vec![];
                 self.inlines(title, &mut texts);
-                blocks.push(Block::new(Content::Para(texts)));
+                blocks.push(Content::Para(texts).into());
                 for item in body.iter() {
                     self.chapter(item, blocks);
                 }
@@ -110,10 +110,13 @@ impl<'doc> ToText<'doc> {
         texts.push(Text::Text(toc_entry.to_string()));
         texts.push(Text::Text(" ".to_string()));
         self.inlines(toc_entry.title, &mut texts);
-        blocks.push(Block::new(Content::Para(vec![Text::Styled(
-            Style::Bold,
-            vec![Text::Styled(Style::Underline, texts)],
-        )])));
+        blocks.push(
+            Content::Para(vec![Text::Styled(
+                Style::Bold,
+                vec![Text::Styled(Style::Underline, texts)],
+            )])
+            .into(),
+        );
     }
 
     fn chapter(&self, doc: &Instance, blocks: &mut Blocks) {
@@ -171,10 +174,7 @@ impl<'doc> ToText<'doc> {
                 let body = &children[1].seq();
                 let mut texts = vec![];
                 self.inlines(title, &mut texts);
-                blocks.push(Block::new(Content::Para(vec![Text::Styled(
-                    Style::Underline,
-                    texts,
-                )])));
+                blocks.push(Content::Para(vec![Text::Styled(Style::Underline, texts)]).into());
                 self.blocks(&body[0], blocks);
             }
             _ => panic!(),
@@ -192,26 +192,32 @@ impl<'doc> ToText<'doc> {
             Instance::Para(para) => {
                 let mut texts = vec![];
                 self.inlines(para, &mut texts);
-                blocks.push(Block::new(Content::Para(texts)));
+                blocks.push(Content::Para(texts).into());
             }
             Instance::Element(tag, _) if tag == "dinkus" => {
                 let s = "* * *";
-                blocks.push(Block::new(Content::Pre(vec![
-                    // FIXME: move centering into text_layout.rs
-                    Text::Text(
-                        " ".to_string()
-                            .repeat(self.max_width.saturating_sub(s.len()) / 2),
-                    ),
-                    Text::Styled(Style::Bold, vec![Text::Text(s.to_string())]),
-                ])));
+                blocks.push(
+                    Content::Pre(vec![
+                        // FIXME: move centering into text_layout.rs
+                        Text::Text(
+                            " ".to_string()
+                                .repeat(self.max_width.saturating_sub(s.len()) / 2),
+                        ),
+                        Text::Styled(Style::Bold, vec![Text::Text(s.to_string())]),
+                    ])
+                    .into(),
+                );
             }
             Instance::Element(tag, children) if tag == "listing" || tag == "screen" => {
                 let mut texts = vec![];
                 self.inlines(&children[0], &mut texts);
-                blocks.push(Block::new(Content::Table(vec![vec![
-                    Block::new(Content::Pre(vec![Text::Text("   ".to_string())])),
-                    Block::new(Content::Pre(texts)),
-                ]])));
+                blocks.push(
+                    Content::Table(vec![vec![
+                        Block::new(Content::Pre(vec![Text::Text("   ".to_string())])),
+                        Block::new(Content::Pre(texts)),
+                    ]])
+                    .into(),
+                );
             }
             Instance::Element(tag, children)
                 if tag == "ol" || tag == "ul" || tag == "procedure" =>
@@ -226,15 +232,16 @@ impl<'doc> ToText<'doc> {
                         _ => unreachable!(),
                     }
                     rows.push(vec![
-                        Block::new(Content::Pre(vec![Text::Text(if tag == "ul" {
+                        Content::Pre(vec![Text::Text(if tag == "ul" {
                             "*".to_string()
                         } else {
                             format!("{}.", n + 1)
-                        })])),
-                        Block::new(Content::TB(blocks)),
+                        })])
+                        .into(),
+                        Content::TB(blocks).into(),
                     ]);
                 }
-                blocks.push(Block::new(Content::Table(rows)));
+                blocks.push(Content::Table(rows).into());
             }
             Instance::Element(tag, children) if tag == "namedlist" => {
                 for step in children[0].many().iter() {
@@ -243,17 +250,18 @@ impl<'doc> ToText<'doc> {
                             let mut texts = vec![];
                             texts.push(Text::Text("* ".to_string()));
                             self.inlines(&children[0], &mut texts);
-                            blocks.push(Block::new(Content::Para(vec![Text::Styled(
-                                Style::Bold,
-                                texts,
-                            )])));
+                            blocks
+                                .push(Content::Para(vec![Text::Styled(Style::Bold, texts)]).into());
 
                             let mut blocks2 = vec![];
                             self.blocks(&children[1], &mut blocks2);
-                            blocks.push(Block::new(Content::Table(vec![vec![
-                                Block::new(Content::Pre(vec![Text::Text(" ".to_string())])),
-                                Block::new(Content::TB(blocks2)),
-                            ]])));
+                            blocks.push(
+                                Content::Table(vec![vec![
+                                    Block::new(Content::Pre(vec![Text::Text(" ".to_string())])),
+                                    Block::new(Content::TB(blocks2)),
+                                ]])
+                                .into(),
+                            );
                         }
                         _ => unreachable!(),
                     }

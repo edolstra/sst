@@ -18,6 +18,12 @@ impl Block {
     }
 }
 
+impl From<Content> for Block {
+    fn from(content: Content) -> Self {
+        Block::new(content)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Content {
     Para(Texts),
