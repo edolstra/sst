@@ -33,8 +33,6 @@
 
         src = if isShell then null else inputs.self;
 
-        RUSTC_BOOTSTRAP = "1";
-
         SODIUM_SHARED = 1;
         SODIUM_USE_PKG_CONFIG = 1;
 
