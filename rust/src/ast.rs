@@ -2,7 +2,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Doc(pub Vec<Item>);
 
 impl Deref for Doc {
@@ -18,7 +18,7 @@ impl DerefMut for Doc {
     }
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub enum Item {
     Text(String, Pos),
     Element(Element),
@@ -42,7 +42,7 @@ impl Item {
     */
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Element {
     pub tag: Tag,
     pub named_args: HashMap<String, Doc>,
@@ -60,7 +60,7 @@ impl Element {
 
 pub type Tag = String;
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Pos {
     pub filename: String, // FIXME: wasteful
     pub line: u64,

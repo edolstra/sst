@@ -4,7 +4,7 @@ use std::iter::Peekable;
 use std::mem;
 use std::str::Chars;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     UnexpectedChar(char, Pos),
     UnexpectedEOF(Pos),
@@ -413,5 +413,122 @@ fn strip_indent(s: &str, indent: &str, strip_first: bool) -> String {
                 return res;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::ast::Item;
+
+    static FILE: &str = "test.sst";
+
+    #[test]
+    fn parse_str() {
+        assert_eq!(
+            parse_string(FILE, "hello"),
+            Ok(Doc(vec![Item::Text(
+                "hello".to_string(),
+                Pos {
+                    filename: FILE.to_string(),
+                    line: 0,
+                    column: 0
+                }
+            )]))
+        );
+    }
+
+    #[test]
+    fn parse_element() {
+        assert_eq!(
+            parse_string(FILE, "Hello \\emph{World}!"),
+            Ok(Doc(vec![
+                Item::Text(
+                    "Hello ".to_string(),
+                    Pos {
+                        filename: FILE.to_string(),
+                        line: 0,
+                        column: 0
+                    }
+                ),
+                Item::Element(Element {
+                    tag: "emph".to_string(),
+                    named_args: HashMap::new(),
+                    pos_args: vec![Doc(vec![Item::Text(
+                        "World".to_string(),
+                        Pos {
+                            filename: FILE.to_string(),
+                            line: 0,
+                            column: 12
+                        }
+                    )])],
+                    pos: Pos {
+                        filename: FILE.to_string(),
+                        line: 0,
+                        column: 6
+                    }
+                }),
+                Item::Text(
+                    "!".to_string(),
+                    Pos {
+                        filename: FILE.to_string(),
+                        line: 0,
+                        column: 18
+                    }
+                ),
+            ]))
+        );
+    }
+
+    #[test]
+    fn parse_element_eof() {
+        assert_eq!(
+            parse_string(FILE, "Hello \\emph{World!"),
+            Err(Error::UnexpectedEOF(Pos {
+                filename: FILE.to_string(),
+                line: 0,
+                column: 18
+            }))
+        );
+    }
+
+    #[test]
+    fn parse_begin_end() {
+        assert_eq!(
+            parse_string(FILE, "\\begin{emph}bla\\end{emph}"),
+            Ok(Doc(vec![Item::Element(Element {
+                tag: "emph".to_string(),
+                named_args: HashMap::new(),
+                pos_args: vec![Doc(vec![Item::Text(
+                    "bla".to_string(),
+                    Pos {
+                        filename: FILE.to_string(),
+                        line: 0,
+                        column: 12
+                    }
+                )])],
+                pos: Pos {
+                    filename: FILE.to_string(),
+                    line: 0,
+                    column: 0
+                }
+            })]))
+        );
+    }
+
+    #[test]
+    fn parse_begin_end_mismatch() {
+        assert_eq!(
+            parse_string(FILE, "\\begin{emph}bla\\end{emp}"),
+            Err(Error::MismatchingTags(
+                "emph".to_string(),
+                "emp".to_string(),
+                Pos {
+                    filename: FILE.to_string(),
+                    line: 0,
+                    column: 24
+                }
+            ))
+        );
     }
 }
