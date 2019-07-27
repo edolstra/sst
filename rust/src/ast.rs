@@ -18,6 +18,18 @@ impl DerefMut for Doc {
     }
 }
 
+impl From<Item> for Doc {
+    fn from(item: Item) -> Self {
+        Doc(vec![item])
+    }
+}
+
+impl From<Element> for Doc {
+    fn from(item: Element) -> Self {
+        Doc(vec![item.into()])
+    }
+}
+
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub enum Item {
     Text(String, Pos),
@@ -40,6 +52,12 @@ impl Item {
         }
     }
     */
+}
+
+impl From<Element> for Item {
+    fn from(elem: Element) -> Self {
+        Item::Element(elem)
+    }
 }
 
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]

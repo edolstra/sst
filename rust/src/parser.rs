@@ -218,12 +218,15 @@ fn parse_doc2<'a>(state: &mut State, required_end: Option<&str>) -> Result<(Doc,
                     pos_args.push(child);
                 }
 
-                items.push(Item::Element(Element {
-                    tag,
-                    named_args,
-                    pos_args,
-                    pos,
-                }));
+                items.push(
+                    Element {
+                        tag,
+                        named_args,
+                        pos_args,
+                        pos,
+                    }
+                    .into(),
+                );
                 text_pos = state.pos().clone();
             }
             Some('{') => {
@@ -427,14 +430,15 @@ mod test {
     fn parse_str() {
         assert_eq!(
             parse_string(FILE, "hello"),
-            Ok(Doc(vec![Item::Text(
+            Ok(Item::Text(
                 "hello".to_string(),
                 Pos {
                     filename: FILE.to_string(),
                     line: 0,
                     column: 0
                 }
-            )]))
+            )
+            .into())
         );
     }
 
@@ -451,7 +455,7 @@ mod test {
                         column: 0
                     }
                 ),
-                Item::Element(Element {
+                Element {
                     tag: "emph".to_string(),
                     named_args: HashMap::new(),
                     pos_args: vec![Doc(vec![Item::Text(
@@ -467,7 +471,8 @@ mod test {
                         line: 0,
                         column: 6
                     }
-                }),
+                }
+                .into(),
                 Item::Text(
                     "!".to_string(),
                     Pos {
@@ -496,7 +501,7 @@ mod test {
     fn parse_begin_end() {
         assert_eq!(
             parse_string(FILE, "\\begin{emph}bla\\end{emph}"),
-            Ok(Doc(vec![Item::Element(Element {
+            Ok(Element {
                 tag: "emph".to_string(),
                 named_args: HashMap::new(),
                 pos_args: vec![Doc(vec![Item::Text(
@@ -512,7 +517,8 @@ mod test {
                     line: 0,
                     column: 0
                 }
-            })]))
+            }
+            .into())
         );
     }
 
