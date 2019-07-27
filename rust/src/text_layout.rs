@@ -1,5 +1,5 @@
-use std::mem;
 use std::cmp;
+use std::mem;
 
 #[derive(Debug, Clone)]
 pub struct Block {
@@ -10,7 +10,11 @@ pub struct Block {
 
 impl Block {
     pub fn new(content: Content) -> Self {
-        Block { margin_top: 1, margin_bottom: 1, content }
+        Block {
+            margin_top: 1,
+            margin_bottom: 1,
+            content,
+        }
     }
 }
 
@@ -47,7 +51,7 @@ struct FullStyle {
     italic: bool,
     underline: bool,
     strikethrough: bool,
-    color: Color
+    color: Color,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -70,11 +74,21 @@ impl FullStyle {
     pub fn apply(&self, style: &Style) -> Self {
         let mut res = self.clone();
         match style {
-            Style::Bold => { res.bold = true; }
-            Style::Italic => { res.italic = true; }
-            Style::Underline => { res.underline = true; }
-            Style::Strikethrough => { res.strikethrough = true; }
-            Style::Color(color) => { res.color = *color; }
+            Style::Bold => {
+                res.bold = true;
+            }
+            Style::Italic => {
+                res.italic = true;
+            }
+            Style::Underline => {
+                res.underline = true;
+            }
+            Style::Strikethrough => {
+                res.strikethrough = true;
+            }
+            Style::Color(color) => {
+                res.color = *color;
+            }
         };
         res
     }
@@ -84,7 +98,6 @@ type StyledLine = Vec<(FullStyle, char)>;
 type StyledLines = Vec<StyledLine>;
 
 fn layout(max_width: usize, mut margin_top_min: usize, block: &Block, lines: &mut StyledLines) {
-
     // FIXME: only emit margin when we emit some lines.
     if !lines.is_empty() {
         for n in 0..cmp::max(margin_top_min, block.margin_top) {
@@ -93,9 +106,7 @@ fn layout(max_width: usize, mut margin_top_min: usize, block: &Block, lines: &mu
     }
 
     match &block.content {
-
         Content::Para(text) => {
-
             let mut line = vec![];
             flatten_texts(text, &FullStyle::new(), &mut line);
 
@@ -118,7 +129,8 @@ fn layout(max_width: usize, mut margin_top_min: usize, block: &Block, lines: &mu
                             self.cur_whitespace.push((style.clone(), ' '));
                         } else {
                             // Merge adjacent whitespace if it has the same style.
-                            if !self.cur_whitespace.is_empty() && &self.cur_whitespace[0].0 != style {
+                            if !self.cur_whitespace.is_empty() && &self.cur_whitespace[0].0 != style
+                            {
                                 self.cur_whitespace.push((style.clone(), ' '));
                             }
                         }
@@ -133,18 +145,19 @@ fn layout(max_width: usize, mut margin_top_min: usize, block: &Block, lines: &mu
 
                 fn flush_word(&mut self) {
                     if !self.cur_span.is_empty() {
-
                         if self.cur_line.len() + self.cur_span.len() >= *self.max_width {
                             self.flush_line();
                         }
 
                         if !self.cur_line.is_empty() {
-                            self.cur_line.extend(mem::replace(&mut self.cur_whitespace, vec![]));
+                            self.cur_line
+                                .extend(mem::replace(&mut self.cur_whitespace, vec![]));
                         } else {
                             self.cur_whitespace = vec![];
                         }
 
-                        self.cur_line.extend(mem::replace(&mut self.cur_span, vec![]));
+                        self.cur_line
+                            .extend(mem::replace(&mut self.cur_span, vec![]));
                     }
                 }
 
@@ -161,7 +174,7 @@ fn layout(max_width: usize, mut margin_top_min: usize, block: &Block, lines: &mu
                 cur_line: vec![],
                 cur_span: vec![],
                 cur_whitespace: vec![],
-                in_whitespace: false
+                in_whitespace: false,
             };
 
             for (style, c) in &line {
@@ -177,9 +190,13 @@ fn layout(max_width: usize, mut margin_top_min: usize, block: &Block, lines: &mu
             flatten_texts(text, &FullStyle::new(), &mut line);
             let mut pop_last = false;
             if let Some(l) = line.last() {
-                if l.1 == '\n' { pop_last = true; }
+                if l.1 == '\n' {
+                    pop_last = true;
+                }
             }
-            if pop_last { line.pop(); }
+            if pop_last {
+                line.pop();
+            }
             for l in line.split(|c| c.1 == '\n') {
                 lines.push(l.to_vec());
             }
@@ -193,7 +210,9 @@ fn layout(max_width: usize, mut margin_top_min: usize, block: &Block, lines: &mu
         }
 
         Content::Table(rows) => {
-            if rows.is_empty() { return; }
+            if rows.is_empty() {
+                return;
+            }
 
             let nr_columns = rows[0].len();
 
@@ -209,8 +228,12 @@ fn layout(max_width: usize, mut margin_top_min: usize, block: &Block, lines: &mu
                 for (row_index, row) in rows.iter().enumerate() {
                     let child = &row[column_index];
                     let mut child_lines = vec![];
-                    layout(width_left - if column_index + 1 == nr_columns {0} else {1},
-                           0, &child, &mut child_lines);
+                    layout(
+                        width_left - if column_index + 1 == nr_columns { 0 } else { 1 },
+                        0,
+                        &child,
+                        &mut child_lines,
+                    );
                     for line in &child_lines {
                         column_width = cmp::max(column_width, line.len());
                     }
@@ -220,7 +243,11 @@ fn layout(max_width: usize, mut margin_top_min: usize, block: &Block, lines: &mu
 
                 children.push(column_children);
 
-                width_left = if column_width < width_left { width_left - column_width - 1 } else { 1 };
+                width_left = if column_width < width_left {
+                    width_left - column_width - 1
+                } else {
+                    1
+                };
 
                 column_widths[column_index] = column_width;
             }
@@ -232,7 +259,9 @@ fn layout(max_width: usize, mut margin_top_min: usize, block: &Block, lines: &mu
                         let child = &children[column_index][row_index];
                         let l = if line_nr < child.len() {
                             children[column_index][row_index][line_nr].clone() // FIXME: move
-                        } else { vec![] };
+                        } else {
+                            vec![]
+                        };
                         let l_width = l.len();
                         line.extend(l);
                         if column_index + 1 < nr_columns {
@@ -260,7 +289,7 @@ fn flatten_texts(texts: &Texts, style: &FullStyle, line: &mut StyledLine) {
                 for c in s.chars() {
                     line.push((style.clone(), c));
                 }
-            },
+            }
             Text::Styled(change, texts2) => {
                 flatten_texts(texts2, &style.apply(&change), line);
             }

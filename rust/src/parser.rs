@@ -1,8 +1,8 @@
 use crate::ast::*;
-use std::str::Chars;
+use std::collections::HashMap;
 use std::iter::Peekable;
 use std::mem;
-use std::collections::HashMap;
+use std::str::Chars;
 
 #[derive(Debug)]
 pub enum Error {
@@ -41,7 +41,7 @@ impl<'a> State<'a> {
     fn peek(&mut self) -> Option<char> {
         match self.chars.peek() {
             None => None,
-            Some(&c) => Some(c)
+            Some(&c) => Some(c),
         }
     }
 
@@ -54,7 +54,9 @@ impl<'a> State<'a> {
     }
 
     fn eat<F>(&mut self, f: F) -> Result<char, Error>
-        where F: Fn(char) -> bool {
+    where
+        F: Fn(char) -> bool,
+    {
         match self.next() {
             Some(c) if f(c) => Ok(c),
             Some(c) => Err(Error::UnexpectedChar(c, self.pos())),
@@ -64,23 +66,31 @@ impl<'a> State<'a> {
 }
 
 pub fn parse_string(filename: &str, s: &str) -> Result<Doc, Error> {
-    let mut state = State { filename, line: 0, column: 0, chars: s.chars().peekable() };
+    let mut state = State {
+        filename,
+        line: 0,
+        column: 0,
+        chars: s.chars().peekable(),
+    };
     let (res, _) = parse_doc(&mut state, None)?;
     match state.next() {
         None => Ok(res),
-        Some(c) => Err(Error::UnexpectedChar(c, state.pos()))
+        Some(c) => Err(Error::UnexpectedChar(c, state.pos())),
     }
 }
 
 #[derive(Debug, Clone)]
 struct Indent {
     open: bool,
-    s: String
+    s: String,
 }
 
 impl Indent {
     fn new() -> Self {
-        Indent { open: true, s: "".to_string() }
+        Indent {
+            open: true,
+            s: "".to_string(),
+        }
     }
 }
 
@@ -122,7 +132,7 @@ fn parse_doc<'a>(state: &mut State, required_end: Option<&str>) -> Result<(Doc, 
                 let i = strip_indent(&s, &indent.s, n == 0);
                 stripped_items.push(Item::Text(i, pos.clone()))
             }
-            _ => stripped_items.push(item.clone()) // FIXME
+            _ => stripped_items.push(item.clone()), // FIXME
         }
     }
 
@@ -130,14 +140,12 @@ fn parse_doc<'a>(state: &mut State, required_end: Option<&str>) -> Result<(Doc, 
 }
 
 fn parse_doc2<'a>(state: &mut State, required_end: Option<&str>) -> Result<(Doc, Indent), Error> {
-
     let mut items = vec![];
     let mut text = String::new();
     let mut text_pos = state.pos();
     let mut indent = Indent::new();
 
     loop {
-
         let c = state.peek();
 
         match c {
@@ -161,9 +169,13 @@ fn parse_doc2<'a>(state: &mut State, required_end: Option<&str>) -> Result<(Doc,
                     tag = parse_enclosed_tag(state)?;
                     return match required_end {
                         Some(required_tag) if tag == required_tag => Ok((Doc(items), indent)),
-                        Some(required_tag) => Err(Error::MismatchingTags(required_tag.to_string(), tag, state.pos())),
+                        Some(required_tag) => Err(Error::MismatchingTags(
+                            required_tag.to_string(),
+                            tag,
+                            state.pos(),
+                        )),
                         None => Err(Error::UnexpectedEnd(state.pos())),
-                    }
+                    };
                 }
 
                 let mut named_args = HashMap::new();
@@ -180,8 +192,8 @@ fn parse_doc2<'a>(state: &mut State, required_end: Option<&str>) -> Result<(Doc,
                             indent = unify_indents(indent, child_indent);
                             named_args.insert(tag, child);
                             state.eat(|c| c == ']')?;
-                        },
-                        _ => break
+                        }
+                        _ => break,
                     }
                 }
 
@@ -195,8 +207,8 @@ fn parse_doc2<'a>(state: &mut State, required_end: Option<&str>) -> Result<(Doc,
                             indent = unify_indents(indent, child_indent);
                             pos_args.push(child);
                             state.eat(|c| c == '}')?;
-                        },
-                        _ => break
+                        }
+                        _ => break,
                     }
                 }
 
@@ -206,7 +218,12 @@ fn parse_doc2<'a>(state: &mut State, required_end: Option<&str>) -> Result<(Doc,
                     pos_args.push(child);
                 }
 
-                items.push(Item::Element(Element { tag, named_args, pos_args, pos }));
+                items.push(Item::Element(Element {
+                    tag,
+                    named_args,
+                    pos_args,
+                    pos,
+                }));
                 text_pos = state.pos().clone();
             }
             Some('{') => {
@@ -220,7 +237,10 @@ fn parse_doc2<'a>(state: &mut State, required_end: Option<&str>) -> Result<(Doc,
             }
             _ => {
                 if required_end.is_some() {
-                    return Err(Error::MissingEnd(required_end.unwrap().to_string(), state.pos()))
+                    return Err(Error::MissingEnd(
+                        required_end.unwrap().to_string(),
+                        state.pos(),
+                    ));
                 }
                 if !text.is_empty() {
                     indent = unify_indents(indent, get_indent(&text));
@@ -249,11 +269,13 @@ fn parse_raw(state: &mut State, res: &mut String) -> Result<(), Error> {
             }
             '}' => {
                 let c2 = state.eat(|_| true)?;
-                if c2 == '}' { return Ok(()) }
+                if c2 == '}' {
+                    return Ok(());
+                }
                 res.push(c);
                 res.push(c2);
             }
-            _ => res.push(c)
+            _ => res.push(c),
         }
     }
 }
@@ -265,10 +287,10 @@ fn parse_tag(state: &mut State) -> Result<Tag, Error> {
             Some(c) if c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '#' => {
                 tag.push(c);
                 state.next();
-            },
+            }
             _ => {
                 if tag.is_empty() {
-                    return Err(Error::TagExpected(state.pos()))
+                    return Err(Error::TagExpected(state.pos()));
                 }
                 return Ok(tag);
             }
@@ -279,7 +301,7 @@ fn parse_tag(state: &mut State) -> Result<Tag, Error> {
 fn parse_regular_tag(state: &mut State) -> Result<Tag, Error> {
     let tag = parse_tag(state)?;
     if tag == "begin" || tag == "end" {
-        return Err(Error::InvalidTagName(state.pos()))
+        return Err(Error::InvalidTagName(state.pos()));
     }
     Ok(tag)
 }
@@ -298,13 +320,12 @@ fn skip_ws(state: &mut State) {
     loop {
         match state.peek() {
             Some(c) if c.is_whitespace() => state.next(),
-            _ => return
+            _ => return,
         };
     }
 }
 
-fn get_indent(s: & str) -> Indent {
-
+fn get_indent(s: &str) -> Indent {
     let mut indent = Indent::new();
     let mut indent_start = 0;
     let mut indent_end = 0;
@@ -312,8 +333,13 @@ fn get_indent(s: & str) -> Indent {
 
     for (pos, c) in s.char_indices() {
         if c == '\n' {
-            if in_indent { indent_end = pos; }
-            let i = Indent { open: in_indent, s: (&s[indent_start..indent_end]).to_string() };
+            if in_indent {
+                indent_end = pos;
+            }
+            let i = Indent {
+                open: in_indent,
+                s: (&s[indent_start..indent_end]).to_string(),
+            };
             indent = unify_indents(indent, i);
             indent_start = pos + 1;
             in_indent = true;
@@ -337,7 +363,12 @@ fn unify_indents(s1: Indent, s2: Indent) -> Indent {
         let c2 = i2.next();
         if let Some(c1) = c1 {
             if let Some(c2) = c2 {
-                if c1.1 != c2 { return Indent { open: false, s: (&s1.s[0..c1.0]).to_string() }; }
+                if c1.1 != c2 {
+                    return Indent {
+                        open: false,
+                        s: (&s1.s[0..c1.0]).to_string(),
+                    };
+                }
             } else {
                 return if s2.open { s1.clone() } else { s2.clone() }; // FIXME: don't clone
             }
@@ -358,7 +389,9 @@ fn strip_indent(s: &str, indent: &str, strip_first: bool) -> String {
             loop {
                 if let Some(c1) = i.peek() {
                     if let Some(c2) = j.next() {
-                        if c1 != &c2 { break; }
+                        if c1 != &c2 {
+                            break;
+                        }
                     } else {
                         break;
                     }
@@ -373,7 +406,9 @@ fn strip_indent(s: &str, indent: &str, strip_first: bool) -> String {
         loop {
             if let Some(c) = i.next() {
                 res.push(c);
-                if c == '\n' { break }
+                if c == '\n' {
+                    break;
+                }
             } else {
                 return res;
             }

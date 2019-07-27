@@ -1,4 +1,4 @@
-use crate::{validate::*, number, text_layout::*};
+use crate::{number, text_layout::*, validate::*};
 
 struct ToText<'doc> {
     numbers: number::Numbers<'doc>,
@@ -6,7 +6,6 @@ struct ToText<'doc> {
 }
 
 pub fn to_text(doc: &Instance, max_width: usize) -> String {
-
     let state = ToText {
         numbers: number::Numbers::create(doc),
         max_width,
@@ -19,7 +18,6 @@ pub fn to_text(doc: &Instance, max_width: usize) -> String {
 }
 
 impl<'doc> ToText<'doc> {
-
     fn toplevel(&self, doc: &Instance, blocks: &mut Blocks) {
         let doc = doc.unchoice();
         match doc {
@@ -102,14 +100,18 @@ impl<'doc> ToText<'doc> {
     }
 
     fn emit_title(&self, doc: &Instance, blocks: &mut Blocks) {
-        let toc_entry = self.numbers.get_toc_entry(doc)
+        let toc_entry = self
+            .numbers
+            .get_toc_entry(doc)
             .expect(&format!("Expected TOC entry for: {:?}", doc));
         let mut texts = vec![];
         texts.push(Text::Text(toc_entry.to_string()));
         texts.push(Text::Text(" ".to_string()));
         self.inlines(toc_entry.title, &mut texts);
-        blocks.push(Block::new(Content::Para(
-            vec![Text::Styled(Style::Bold, vec![Text::Styled(Style::Underline, texts)])])));
+        blocks.push(Block::new(Content::Para(vec![Text::Styled(
+            Style::Bold,
+            vec![Text::Styled(Style::Underline, texts)],
+        )])));
     }
 
     fn chapter(&self, doc: &Instance, blocks: &mut Blocks) {
@@ -167,7 +169,10 @@ impl<'doc> ToText<'doc> {
                 let body = &children[1].seq();
                 let mut texts = vec![];
                 self.inlines(title, &mut texts);
-                blocks.push(Block::new(Content::Para(vec![Text::Styled(Style::Underline, texts)])));
+                blocks.push(Block::new(Content::Para(vec![Text::Styled(
+                    Style::Underline,
+                    texts,
+                )])));
                 self.blocks(&body[0], blocks);
             }
             _ => panic!(),
@@ -195,10 +200,12 @@ impl<'doc> ToText<'doc> {
                 self.inlines(&children[0], &mut texts);
                 blocks.push(Block::new(Content::Table(vec![vec![
                     Block::new(Content::Pre(vec![Text::Text("   ".to_string())])),
-                    Block::new(Content::Pre(texts))
+                    Block::new(Content::Pre(texts)),
                 ]])));
             }
-            Instance::Element(tag, children) if tag == "ol" || tag == "ul" || tag == "procedure" => {
+            Instance::Element(tag, children)
+                if tag == "ol" || tag == "ul" || tag == "procedure" =>
+            {
                 let mut rows = vec![];
                 for (n, step) in children[0].many().iter().enumerate() {
                     let mut blocks = vec![];
@@ -206,10 +213,14 @@ impl<'doc> ToText<'doc> {
                         Instance::Element(tag, children) if tag == "li" || tag == "step" => {
                             self.blocks(&children[0], &mut blocks);
                         }
-                        _ => unreachable!()
+                        _ => unreachable!(),
                     }
                     rows.push(vec![
-                        Block::new(Content::Pre(vec![Text::Text(if tag == "ul" { "*".to_string() } else { format!("{}.", n + 1) })])),
+                        Block::new(Content::Pre(vec![Text::Text(if tag == "ul" {
+                            "*".to_string()
+                        } else {
+                            format!("{}.", n + 1)
+                        })])),
                         Block::new(Content::TB(blocks)),
                     ]);
                 }
@@ -222,20 +233,23 @@ impl<'doc> ToText<'doc> {
                             let mut texts = vec![];
                             texts.push(Text::Text("* ".to_string()));
                             self.inlines(&children[0], &mut texts);
-                            blocks.push(Block::new(Content::Para(vec![Text::Styled(Style::Bold, texts)])));
+                            blocks.push(Block::new(Content::Para(vec![Text::Styled(
+                                Style::Bold,
+                                texts,
+                            )])));
 
                             let mut blocks2 = vec![];
                             self.blocks(&children[1], &mut blocks2);
                             blocks.push(Block::new(Content::Table(vec![vec![
                                 Block::new(Content::Pre(vec![Text::Text(" ".to_string())])),
-                                Block::new(Content::TB(blocks2))
+                                Block::new(Content::TB(blocks2)),
                             ]])));
                         }
-                        _ => unreachable!()
+                        _ => unreachable!(),
                     }
                 }
             }
-            _ => panic!("Unsupported: {:?}", doc.unchoice())
+            _ => panic!("Unsupported: {:?}", doc.unchoice()),
         }
     }
 
@@ -261,7 +275,10 @@ impl<'doc> ToText<'doc> {
                         texts2.push(Text::Text("[".to_string()));
                         self.inlines(&children[0], &mut texts2);
                         texts2.push(Text::Text("]".to_string()));
-                        texts.push(Text::Styled(Style::Bold, vec![Text::Styled(Style::Color(Color::Red), texts2)]));
+                        texts.push(Text::Styled(
+                            Style::Bold,
+                            vec![Text::Styled(Style::Color(Color::Red), texts2)],
+                        ));
                     }
                     Instance::Element(tag, children) if tag == "code" || tag == "filename" => {
                         let mut texts2 = vec![];
@@ -281,6 +298,8 @@ impl<'doc> ToText<'doc> {
                     }
                 }
             }
-        } else { panic!("{:?}", doc) }
+        } else {
+            panic!("{:?}", doc)
+        }
     }
 }

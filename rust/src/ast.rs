@@ -1,17 +1,21 @@
+use serde::Serialize;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
-use serde::Serialize;
 
 #[derive(Serialize, Debug, Clone)]
 pub struct Doc(pub Vec<Item>);
 
 impl Deref for Doc {
     type Target = Vec<Item>;
-    fn deref(&self) -> &Vec<Item> { &self.0 }
+    fn deref(&self) -> &Vec<Item> {
+        &self.0
+    }
 }
 
 impl DerefMut for Doc {
-    fn deref_mut(&mut self) -> &mut Vec<Item> { &mut self.0 }
+    fn deref_mut(&mut self) -> &mut Vec<Item> {
+        &mut self.0
+    }
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -24,7 +28,7 @@ impl Item {
     pub fn is_whitespace(&self) -> bool {
         match self {
             Item::Text(s, _) => s.chars().all(char::is_whitespace),
-            Item::Element(_) => false
+            Item::Element(_) => false,
         }
     }
 

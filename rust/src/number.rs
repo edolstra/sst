@@ -1,7 +1,7 @@
 use crate::validate::Instance;
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::hash::{Hash, Hasher};
+use std::rc::Rc;
 
 pub struct InstanceByAddr<'a>(pub &'a Instance);
 
@@ -11,8 +11,7 @@ impl<'a> Hash for InstanceByAddr<'a> {
     }
 }
 
-impl<'a> Eq for InstanceByAddr<'a> {
-}
+impl<'a> Eq for InstanceByAddr<'a> {}
 
 impl<'a> PartialEq for InstanceByAddr<'a> {
     fn eq(&self, other: &Self) -> bool {
@@ -36,7 +35,11 @@ impl<'doc> TocEntry<'doc> {
         let mut entry = self;
         loop {
             numbers.push(entry.number.to_string());
-            if let Some(parent) = &entry.parent { entry = &*parent; } else { break }
+            if let Some(parent) = &entry.parent {
+                entry = &*parent;
+            } else {
+                break;
+            }
         }
         numbers.reverse();
         numbers
@@ -48,7 +51,6 @@ impl<'doc> TocEntry<'doc> {
 }
 
 impl<'doc> Numbers<'doc> {
-
     pub fn create(doc: &'doc Instance) -> Self {
         let mut numbers = Numbers {
             toc: HashMap::new(),
@@ -61,40 +63,44 @@ impl<'doc> Numbers<'doc> {
     pub fn get_toc_entry(&self, doc: &'doc Instance) -> Option<&TocEntry<'doc>> {
         match self.toc.get(&InstanceByAddr(doc)) {
             None => None,
-            Some(x) => Some(&*x)
+            Some(x) => Some(&*x),
         }
     }
 
-    fn traverse(&mut self, doc: &'doc Instance,
-                parent: Option<Rc<TocEntry<'doc>>>,
-                next_number: &mut usize)
-    {
+    fn traverse(
+        &mut self,
+        doc: &'doc Instance,
+        parent: Option<Rc<TocEntry<'doc>>>,
+        next_number: &mut usize,
+    ) {
         let mut parent = parent;
         let mut new_counter: usize = 1;
         let mut next_number = next_number;
 
         match doc {
-            Instance::Element(tag, children) if tag == "chapter" || tag == "section" || tag == "subsection" => {
+            Instance::Element(tag, children)
+                if tag == "chapter" || tag == "section" || tag == "subsection" =>
+            {
                 let entry = Rc::new(TocEntry {
                     parent: parent.clone(),
                     number: *next_number,
-                    title: &children[0]
+                    title: &children[0],
                 });
                 self.toc.insert(InstanceByAddr(doc), entry.clone());
                 parent = Some(entry);
                 *next_number += 1;
                 next_number = &mut new_counter;
-            },
+            }
             _ => {}
         }
 
         match doc {
-            Instance::Text(_) => {},
+            Instance::Text(_) => {}
             Instance::Element(_, children) => {
                 for child in children.iter() {
                     self.traverse(child, parent.clone(), next_number);
                 }
-            },
+            }
             Instance::Para(child) => self.traverse(child, parent.clone(), next_number),
             Instance::Seq(children) => {
                 for child in children.iter() {
@@ -109,5 +115,4 @@ impl<'doc> Numbers<'doc> {
             }
         }
     }
-
 }

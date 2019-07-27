@@ -1,9 +1,9 @@
-use std::collections::HashMap;
 use crate::ast::Tag;
+use std::collections::HashMap;
 
 pub struct Schema {
     pub start: Pattern,
-    pub elements: HashMap<Tag, ElementType>
+    pub elements: HashMap<Tag, ElementType>,
 }
 
 type ElementType = Vec<Pattern>;
