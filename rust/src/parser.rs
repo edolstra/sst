@@ -424,7 +424,7 @@ mod test {
     use super::*;
     use crate::ast::Item;
 
-    static FILE: &str = "test.sst";
+    const FILE: &str = "test.sst";
 
     #[test]
     fn parse_str() {
