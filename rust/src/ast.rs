@@ -1,6 +1,7 @@
 use serde::Serialize;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
+use std::sync::Arc;
 
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Doc(pub Vec<Item>);
@@ -80,7 +81,7 @@ pub type Tag = String;
 
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Pos {
-    pub filename: String, // FIXME: wasteful
+    pub filename: Arc<String>,
     pub line: u64,
     pub column: u64,
 }

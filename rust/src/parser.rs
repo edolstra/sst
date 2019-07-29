@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::iter::Peekable;
 use std::mem;
 use std::str::Chars;
+use std::sync::Arc;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
@@ -16,7 +17,7 @@ pub enum Error {
 }
 
 struct State<'a> {
-    filename: &'a str,
+    filename: Arc<String>,
     line: u64,
     column: u64,
     chars: Peekable<Chars<'a>>,
@@ -47,7 +48,7 @@ impl<'a> State<'a> {
 
     fn pos(&self) -> Pos {
         Pos {
-            filename: self.filename.to_string(),
+            filename: Arc::clone(&self.filename),
             line: self.line,
             column: self.column,
         }
@@ -67,7 +68,7 @@ impl<'a> State<'a> {
 
 pub fn parse_string(filename: &str, s: &str) -> Result<Doc, Error> {
     let mut state = State {
-        filename,
+        filename: Arc::new(filename.to_string()),
         line: 0,
         column: 0,
         chars: s.chars().peekable(),

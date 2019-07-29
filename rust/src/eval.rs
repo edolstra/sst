@@ -4,6 +4,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub enum Error {
@@ -79,7 +80,7 @@ fn eval_into(items: &mut Vec<Item>, mut env: Env, doc: &Doc) -> Result<(), Error
                         items,
                         &file,
                         &Pos {
-                            filename,
+                            filename: Arc::new(filename),
                             line: 0,
                             column: 0,
                         },
@@ -174,7 +175,7 @@ fn read_file_from(elem: &Element) -> Result<(String, String), Error> {
         return Err(Error::BadInclude(elem.pos.clone()));
     }
     let filename = get_text(&elem.pos_args[0], Error::BadInclude(elem.pos.clone()))?;
-    let path = Path::new(&elem.pos.filename)
+    let path = Path::new(&*elem.pos.filename)
         .parent()
         .unwrap()
         .join(&filename);

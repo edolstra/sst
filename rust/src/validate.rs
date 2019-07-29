@@ -2,6 +2,7 @@ use crate::{ast::*, schema::*};
 use serde::Serialize;
 use std::mem;
 use std::str::Chars;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub enum Error {
@@ -87,7 +88,7 @@ pub fn validate(schema: &Schema, doc: &Doc, filename: &str) -> Result<Instance, 
         &schema.start,
         doc,
         Pos {
-            filename: filename.to_string(),
+            filename: Arc::new(filename.to_string()),
             line: 0,
             column: 0,
         },
