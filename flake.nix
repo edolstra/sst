@@ -33,9 +33,6 @@
 
         src = if isShell then null else inputs.self;
 
-        SODIUM_SHARED = 1;
-        SODIUM_USE_PKG_CONFIG = 1;
-
         buildPhase = "cd rust; cargo build --release --frozen --offline";
 
         doCheck = true;
