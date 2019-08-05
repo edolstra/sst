@@ -18,8 +18,8 @@ pub enum Error {
     UnexpectedChar(char, Pos),
     UnexpectedEOF(Pos),
     UnexpectedEnd(Pos),
-    MismatchingTags(String, String, Pos),
-    MissingEnd(String, Pos),
+    MismatchingTags(String, String, Pos), // FIXME: record position of open tag
+    MissingEnd(String, Pos),              // FIXME: record name and position of open tag
     TagExpected(Pos),
     InvalidTagName(Pos),
 }
@@ -27,6 +27,7 @@ pub enum Error {
 impl<'a> nom::error::ParseError<Span<'a>> for Error {
     fn from_error_kind(input: Span<'a>, _kind: ErrorKind) -> Self {
         if let Some(c) = input.fragment.chars().next() {
+            // FIXME: delay constructing Pos here.
             Error::UnexpectedChar(c, (&input).into())
         } else {
             Error::UnexpectedEOF((&input).into())
@@ -61,9 +62,11 @@ pub fn text<'a>(input: Span<'a>) -> PResult<Item> {
 
 pub fn raw<'a>(input: Span<'a>) -> PResult<Item> {
     // FIXME: support nesting
-    map(
-        tuple((tag("{{"), many0(none_of("{}")), tag("}}"))),
-        |(_, cs, _)| Item::new_text(cs.into_iter().collect(), (&input).into()),
+    preceded(
+        tag("{{"),
+        cut(map(tuple((many0(none_of("{}")), tag("}}"))), |(cs, _)| {
+            Item::new_text(cs.into_iter().collect(), (&input).into())
+        })),
     )(input)
 }
 
