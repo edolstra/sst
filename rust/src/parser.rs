@@ -1,4 +1,14 @@
 use crate::ast::*;
+use nom::{
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::{char, none_of, one_of},
+    combinator::{all_consuming, map, map_opt},
+    multi::{many0, many1},
+    sequence::tuple,
+    IResult,
+};
+use nom_locate::{position, LocatedSpanEx};
 use std::collections::HashMap;
 use std::iter::Peekable;
 use std::mem;
@@ -16,6 +26,7 @@ pub enum Error {
     InvalidTagName(Pos),
 }
 
+/*
 struct State<'a> {
     filename: Option<Arc<String>>,
     line: u64,
@@ -65,21 +76,140 @@ impl<'a> State<'a> {
         }
     }
 }
+ */
 
-pub fn parse_string(filename: Option<&str>, s: &str) -> Result<Doc, Error> {
-    let mut state = State {
-        filename: filename.map(|filename| Arc::new(filename.to_string())),
-        line: 0,
-        column: 0,
-        chars: s.chars().peekable(),
-    };
-    let (res, _) = parse_doc(&mut state, None)?;
-    match state.next() {
-        None => Ok(res),
-        Some(c) => Err(Error::UnexpectedChar(c, state.pos())),
+type Span<'a> = LocatedSpanEx<&'a str, &'a Option<Filename>>;
+
+impl<'a> From<&Span<'a>> for Pos {
+    fn from(span: &Span<'a>) -> Self {
+        Pos {
+            filename: span.extra.clone(),
+            line: span.line - 1,
+            column: span.get_utf8_column() as u32 - 1,
+        }
     }
 }
 
+pub fn text<'a, Error: nom::error::ParseError<Span<'a>>>(
+    input: Span<'a>,
+) -> IResult<Span<'a>, Item, Error> {
+    let text_char = none_of("{}[]\\");
+
+    map(many1(text_char), |cs| {
+        Item::new_text(cs.into_iter().collect(), (&input).into())
+    })(input)
+}
+
+pub fn raw<'a, Error: nom::error::ParseError<Span<'a>>>(
+    input: Span<'a>,
+) -> IResult<Span<'a>, Item, Error> {
+    // FIXME: support nesting
+    map(
+        tuple((tag("{{"), many0(none_of("{}")), tag("}}"))),
+        |(_, cs, _)| Item::new_text(cs.into_iter().collect(), (&input).into()),
+    )(input)
+}
+
+pub fn tag_name<'a, Error: nom::error::ParseError<Span<'a>>>(
+) -> impl Fn(Span<'a>) -> IResult<Span<'a>, String, Error> {
+    map(
+        many1(one_of("abcdefghijklmnopqrstuvwxyz0123456789#")),
+        |cs| cs.into_iter().collect::<String>(),
+    )
+}
+
+pub fn named_arg<'a, Error: nom::error::ParseError<Span<'a>>>(
+) -> impl Fn(Span<'a>) -> IResult<Span<'a>, (String, Doc), Error> {
+    // FIXME: whitespace
+    map(
+        tuple((char('['), tag_name(), char('='), doc, char(']'))),
+        |(_, tag, _, doc, _)| (tag, doc),
+    )
+}
+
+pub fn pos_arg<'a, Error: nom::error::ParseError<Span<'a>>>(
+) -> impl Fn(Span<'a>) -> IResult<Span<'a>, Doc, Error> {
+    map(tuple((char('{'), doc, char('}'))), |(_, doc, _)| doc)
+}
+
+pub fn element<'a, Error: nom::error::ParseError<Span<'a>>>(
+    input: Span<'a>,
+) -> IResult<Span<'a>, Item, Error> {
+    map_opt(
+        tuple((char('\\'), tag_name(), many1(pos_arg()))),
+        |(_, tag, pos_args)| {
+            if tag != "begin" && tag != "end" {
+                Some(
+                    Element {
+                        tag,
+                        named_args: HashMap::new(),
+                        pos_args,
+                        pos: (&input).into(),
+                    }
+                    .into(),
+                )
+            } else {
+                None
+            }
+        },
+    )(input)
+}
+
+pub fn long_element<'a, Error: nom::error::ParseError<Span<'a>>>(
+    input: Span<'a>,
+) -> IResult<Span<'a>, Item, Error> {
+    map_opt(
+        tuple((
+            tag("\\begin{"),
+            tag_name(),
+            char('}'),
+            many0(named_arg()),
+            many0(pos_arg()),
+            doc,
+            tag("\\end{"),
+            tag_name(),
+            char('}'),
+        )),
+        |(_, tag, _, named_args, mut pos_args, doc, _, tag2, _)| {
+            if tag == tag2 {
+                pos_args.push(doc);
+                Some(
+                    Element {
+                        tag,
+                        named_args: named_args.into_iter().collect(),
+                        pos_args,
+                        pos: (&input).into(),
+                    }
+                    .into(),
+                )
+            } else {
+                // FIXME: return fatal error
+                None
+            }
+        },
+    )(input)
+}
+
+pub fn doc<'a, Error: nom::error::ParseError<Span<'a>>>(
+    input: Span<'a>,
+) -> IResult<Span<'a>, Doc, Error> {
+    let item = alt((text, raw, element, long_element));
+    map(many0(item), |items| Doc(items))(input)
+}
+
+pub fn parse_string(filename: Option<&str>, s: &str) -> Result<Doc, Error> {
+    let filename = filename.map(|filename| Arc::new(filename.to_string()));
+    let input = Span::new_extra(s, &filename);
+
+    let r: IResult<_, _, nom::error::VerboseError<_>> = all_consuming(doc)(input);
+
+    match r {
+        Err(err) => panic!("ERR {:?}", err),
+        Ok((_, s)) => Ok(s),
+    }
+}
+
+/*
 #[derive(Debug, Clone)]
 struct Indent {
     open: bool,
@@ -422,6 +552,7 @@ fn strip_indent(s: &str, indent: &str, strip_first: bool) -> String {
         }
     }
 }
+*/
 
 #[cfg(test)]
 mod test {

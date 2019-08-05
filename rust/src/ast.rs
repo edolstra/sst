@@ -93,10 +93,12 @@ impl Element {
 
 pub type Tag = String;
 
+pub type Filename = Arc<String>;
+
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Pos {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub filename: Option<Arc<String>>,
-    pub line: u64,
-    pub column: u64,
+    pub filename: Option<Filename>,
+    pub line: u32,
+    pub column: u32,
 }
