@@ -10,10 +10,7 @@ use nom::{
     IResult,
 };
 use nom_locate::LocatedSpanEx;
-use std::collections::HashMap;
 use std::iter::Peekable;
-use std::mem;
-use std::str::Chars;
 use std::sync::Arc;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -28,7 +25,7 @@ pub enum Error {
 }
 
 impl<'a> nom::error::ParseError<Span<'a>> for Error {
-    fn from_error_kind(input: Span<'a>, kind: ErrorKind) -> Self {
+    fn from_error_kind(input: Span<'a>, _kind: ErrorKind) -> Self {
         if let Some(c) = input.fragment.chars().next() {
             Error::UnexpectedChar(c, (&input).into())
         } else {
@@ -36,7 +33,7 @@ impl<'a> nom::error::ParseError<Span<'a>> for Error {
         }
     }
 
-    fn append(input: Span<'a>, kind: ErrorKind, other: Self) -> Self {
+    fn append(_input: Span<'a>, _kind: ErrorKind, other: Self) -> Self {
         other
     }
 }
@@ -115,7 +112,7 @@ pub fn element<'a>(input: Span<'a>) -> PResult<Item> {
 }
 
 pub fn long_element<'a>(input: Span<'a>) -> PResult<Item> {
-    let (rest, (_, (open_tag, _, named_args, mut pos_args, doc, _, close_tag, _))) = tuple((
+    let (rest, (_, (open_tag, _, named_args, mut pos_args, doc))) = tuple((
         tag("\\begin{"),
         cut(tuple((
             tag_name(),
@@ -123,11 +120,17 @@ pub fn long_element<'a>(input: Span<'a>) -> PResult<Item> {
             many0(named_arg()),
             many0(pos_arg()),
             doc,
-            tag("\\end{"),
-            tag_name(),
-            char('}'),
         ))),
     ))(input)?;
+
+    let (rest, (_, close_tag, _)) =
+        tuple((tag("\\end{"), tag_name(), char('}')))(rest).map_err(|err| {
+            if let nom::Err::Error(Error::UnexpectedEOF(pos)) = err {
+                nom::Err::Failure(Error::MissingEnd(open_tag.to_string(), pos))
+            } else {
+                err
+            }
+        })?;
 
     if open_tag == close_tag {
         if open_tag == "begin" || open_tag == "end" {
