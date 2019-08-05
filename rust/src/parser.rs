@@ -3,12 +3,13 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{char, none_of, one_of},
-    combinator::{all_consuming, map, map_opt},
+    combinator::{all_consuming, cut, map},
+    error::ErrorKind,
     multi::{many0, many1},
-    sequence::tuple,
+    sequence::{preceded, tuple},
     IResult,
 };
-use nom_locate::{position, LocatedSpanEx};
+use nom_locate::LocatedSpanEx;
 use std::collections::HashMap;
 use std::iter::Peekable;
 use std::mem;
@@ -26,59 +27,23 @@ pub enum Error {
     InvalidTagName(Pos),
 }
 
-/*
-struct State<'a> {
-    filename: Option<Arc<String>>,
-    line: u64,
-    column: u64,
-    chars: Peekable<Chars<'a>>,
-}
-
-impl<'a> State<'a> {
-    fn next(&mut self) -> Option<char> {
-        match self.chars.next() {
-            None => None,
-            Some(c) => {
-                if c == '\n' {
-                    self.column = 0;
-                    self.line += 1;
-                } else {
-                    self.column += 1;
-                }
-                Some(c)
-            }
+impl<'a> nom::error::ParseError<Span<'a>> for Error {
+    fn from_error_kind(input: Span<'a>, kind: ErrorKind) -> Self {
+        if let Some(c) = input.fragment.chars().next() {
+            Error::UnexpectedChar(c, (&input).into())
+        } else {
+            Error::UnexpectedEOF((&input).into())
         }
     }
 
-    fn peek(&mut self) -> Option<char> {
-        match self.chars.peek() {
-            None => None,
-            Some(&c) => Some(c),
-        }
-    }
-
-    fn pos(&self) -> Pos {
-        Pos {
-            filename: self.filename.clone(),
-            line: self.line,
-            column: self.column,
-        }
-    }
-
-    fn eat<F>(&mut self, f: F) -> Result<char, Error>
-    where
-        F: Fn(char) -> bool,
-    {
-        match self.next() {
-            Some(c) if f(c) => Ok(c),
-            Some(c) => Err(Error::UnexpectedChar(c, self.pos())),
-            None => Err(Error::UnexpectedEOF(self.pos())),
-        }
+    fn append(input: Span<'a>, kind: ErrorKind, other: Self) -> Self {
+        other
     }
 }
- */
 
 type Span<'a> = LocatedSpanEx<&'a str, &'a Option<Filename>>;
+
+type PResult<'a, T> = IResult<Span<'a>, T, Error>;
 
 impl<'a> From<&Span<'a>> for Pos {
     fn from(span: &Span<'a>) -> Self {
@@ -90,19 +55,14 @@ impl<'a> From<&Span<'a>> for Pos {
     }
 }
 
-pub fn text<'a, Error: nom::error::ParseError<Span<'a>>>(
-    input: Span<'a>,
-) -> IResult<Span<'a>, Item, Error> {
+pub fn text<'a>(input: Span<'a>) -> PResult<Item> {
     let text_char = none_of("{}[]\\");
-
     map(many1(text_char), |cs| {
         Item::new_text(cs.into_iter().collect(), (&input).into())
     })(input)
 }
 
-pub fn raw<'a, Error: nom::error::ParseError<Span<'a>>>(
-    input: Span<'a>,
-) -> IResult<Span<'a>, Item, Error> {
+pub fn raw<'a>(input: Span<'a>) -> PResult<Item> {
     // FIXME: support nesting
     map(
         tuple((tag("{{"), many0(none_of("{}")), tag("}}"))),
@@ -110,57 +70,54 @@ pub fn raw<'a, Error: nom::error::ParseError<Span<'a>>>(
     )(input)
 }
 
-pub fn tag_name<'a, Error: nom::error::ParseError<Span<'a>>>(
-) -> impl Fn(Span<'a>) -> IResult<Span<'a>, String, Error> {
+pub fn tag_name<'a>() -> impl Fn(Span<'a>) -> PResult<String> {
     map(
         many1(one_of("abcdefghijklmnopqrstuvwxyz0123456789#")),
         |cs| cs.into_iter().collect::<String>(),
     )
 }
 
-pub fn named_arg<'a, Error: nom::error::ParseError<Span<'a>>>(
-) -> impl Fn(Span<'a>) -> IResult<Span<'a>, (String, Doc), Error> {
+pub fn named_arg<'a>() -> impl Fn(Span<'a>) -> PResult<(String, Doc)> {
     // FIXME: whitespace
-    map(
-        tuple((char('['), tag_name(), char('='), doc, char(']'))),
-        |(_, tag, _, doc, _)| (tag, doc),
+    preceded(
+        char('['),
+        cut(map(
+            tuple((tag_name(), char('='), doc, char(']'))),
+            |(tag, _, doc, _)| (tag, doc),
+        )),
     )
 }
 
-pub fn pos_arg<'a, Error: nom::error::ParseError<Span<'a>>>(
-) -> impl Fn(Span<'a>) -> IResult<Span<'a>, Doc, Error> {
-    map(tuple((char('{'), doc, char('}'))), |(_, doc, _)| doc)
+pub fn pos_arg<'a>() -> impl Fn(Span<'a>) -> PResult<Doc> {
+    preceded(char('{'), cut(map(tuple((doc, char('}'))), |(doc, _)| doc)))
 }
 
-pub fn element<'a, Error: nom::error::ParseError<Span<'a>>>(
-    input: Span<'a>,
-) -> IResult<Span<'a>, Item, Error> {
-    map_opt(
-        tuple((char('\\'), tag_name(), many1(pos_arg()))),
-        |(_, tag, pos_args)| {
-            if tag != "begin" && tag != "end" {
-                Some(
-                    Element {
-                        tag,
-                        named_args: HashMap::new(),
-                        pos_args,
-                        pos: (&input).into(),
-                    }
-                    .into(),
-                )
-            } else {
-                None
+pub fn element<'a>(input: Span<'a>) -> PResult<Item> {
+    let (rest, (_, (tag, named_args, pos_args))) = tuple((
+        char('\\'),
+        cut(tuple((tag_name(), many0(named_arg()), many1(pos_arg())))),
+    ))(input)?;
+
+    if tag == "begin" || tag == "end" {
+        Err(nom::Err::Error(Error::InvalidTagName((&rest).into())))
+    } else {
+        Ok((
+            rest,
+            Element {
+                tag,
+                named_args: named_args.into_iter().collect(),
+                pos_args,
+                pos: (&input).into(),
             }
-        },
-    )(input)
+            .into(),
+        ))
+    }
 }
 
-pub fn long_element<'a, Error: nom::error::ParseError<Span<'a>>>(
-    input: Span<'a>,
-) -> IResult<Span<'a>, Item, Error> {
-    map_opt(
-        tuple((
-            tag("\\begin{"),
+pub fn long_element<'a>(input: Span<'a>) -> PResult<Item> {
+    let (rest, (_, (open_tag, _, named_args, mut pos_args, doc, _, close_tag, _))) = tuple((
+        tag("\\begin{"),
+        cut(tuple((
             tag_name(),
             char('}'),
             many0(named_arg()),
@@ -169,30 +126,35 @@ pub fn long_element<'a, Error: nom::error::ParseError<Span<'a>>>(
             tag("\\end{"),
             tag_name(),
             char('}'),
-        )),
-        |(_, tag, _, named_args, mut pos_args, doc, _, tag2, _)| {
-            if tag == tag2 {
-                pos_args.push(doc);
-                Some(
-                    Element {
-                        tag,
-                        named_args: named_args.into_iter().collect(),
-                        pos_args,
-                        pos: (&input).into(),
-                    }
-                    .into(),
-                )
-            } else {
-                // FIXME: return fatal error
-                None
-            }
-        },
-    )(input)
+        ))),
+    ))(input)?;
+
+    if open_tag == close_tag {
+        if open_tag == "begin" || open_tag == "end" {
+            Err(nom::Err::Failure(Error::InvalidTagName((&input).into())))
+        } else {
+            pos_args.push(doc);
+            Ok((
+                rest,
+                Element {
+                    tag: open_tag,
+                    named_args: named_args.into_iter().collect(),
+                    pos_args,
+                    pos: (&input).into(),
+                }
+                .into(),
+            ))
+        }
+    } else {
+        Err(nom::Err::Failure(Error::MismatchingTags(
+            open_tag,
+            close_tag,
+            (&rest).into(),
+        )))
+    }
 }
 
-pub fn doc<'a, Error: nom::error::ParseError<Span<'a>>>(
-    input: Span<'a>,
-) -> IResult<Span<'a>, Doc, Error> {
+pub fn doc<'a>(input: Span<'a>) -> PResult<Doc> {
     let item = alt((text, raw, element, long_element));
     map(many0(item), |items| Doc(items))(input)
 }
@@ -201,10 +163,12 @@ pub fn parse_string(filename: Option<&str>, s: &str) -> Result<Doc, Error> {
     let filename = filename.map(|filename| Arc::new(filename.to_string()));
     let input = Span::new_extra(s, &filename);
 
-    let r: IResult<_, _, nom::error::VerboseError<_>> = all_consuming(doc)(input);
+    let res = all_consuming(doc)(input);
 
-    match r {
-        Err(err) => panic!("ERR {:?}", err),
+    match res {
+        Err(nom::Err::Error(err)) => unreachable!("ERROR {:?}", err),
+        Err(nom::Err::Failure(err)) => Err(err),
+        Err(nom::Err::Incomplete(_)) => unreachable!(),
         Ok((_, s)) => Ok(s),
     }
 }
