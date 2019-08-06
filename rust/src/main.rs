@@ -13,13 +13,21 @@ use std::fs;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
-fn parse_file(filename: &str) -> ast::Doc {
+fn parse_file(filename: &str, include_filename: bool) -> ast::Doc {
     let input = fs::read_to_string(&filename).expect("Unable to read file");
-    parser::parse_string(Some(&filename), &input).expect("Parse error")
+    parser::parse_string(
+        if include_filename {
+            Some(&filename)
+        } else {
+            None
+        },
+        &input,
+    )
+    .expect("Parse error")
 }
 
 fn eval_file(filename: &str) -> ast::Doc {
-    let ast = parse_file(filename);
+    let ast = parse_file(filename, true);
     eval::eval(&ast).expect("Evaluation error")
 }
 
@@ -94,12 +102,12 @@ fn main() {
 
     if let Some(matches) = matches.subcommand_matches("parse") {
         let filename = matches.value_of("INPUT").unwrap();
-        let ast = parse_file(&filename);
-        println!("{}", &serde_json::to_string(&ast).unwrap());;
+        let ast = parse_file(&filename, false);
+        println!("{}", &serde_json::to_string_pretty(&ast).unwrap());
     } else if let Some(matches) = matches.subcommand_matches("eval") {
         let filename = matches.value_of("INPUT").unwrap();
         let ast = eval_file(&filename);
-        println!("{}", &serde_json::to_string(&ast).unwrap());;
+        println!("{}", &serde_json::to_string(&ast).unwrap());
     } else if let Some(matches) = matches.subcommand_matches("check") {
         let filename = matches.value_of("INPUT").unwrap();
         let instance = validate_file(&filename);
