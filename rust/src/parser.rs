@@ -423,117 +423,67 @@ fn strip_indent(s: &str, indent: &str, strip_first: bool) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::ast::Item;
+
+    fn check_ok(sst: &str, json: &str) {
+        assert_eq!(
+            serde_json::to_string_pretty(&parse_string(None, sst).unwrap()).unwrap() + "\n",
+            json
+        );
+    }
+
+    fn check_err(sst: &str, err: Error) {
+        assert_eq!(parse_string(None, sst), Err(err));
+    }
 
     #[test]
-    fn parse_str() {
-        assert_eq!(
-            parse_string(None, "hello"),
-            Ok(Item::Text(
-                "hello".to_string(),
-                Pos {
-                    filename: None,
-                    line: 0,
-                    column: 0
-                }
-            )
-            .into())
+    fn parse_text() {
+        check_ok(
+            include_str!("../../test/text.sst"),
+            include_str!("../../test/text.json"),
         );
     }
 
     #[test]
     fn parse_element() {
-        assert_eq!(
-            parse_string(None, "Hello \\emph{World}!"),
-            Ok(Doc(vec![
-                Item::Text(
-                    "Hello ".to_string(),
-                    Pos {
-                        filename: None,
-                        line: 0,
-                        column: 0
-                    }
-                ),
-                Element {
-                    tag: "emph".to_string(),
-                    named_args: HashMap::new(),
-                    pos_args: vec![Doc(vec![Item::Text(
-                        "World".to_string(),
-                        Pos {
-                            filename: None,
-                            line: 0,
-                            column: 12
-                        }
-                    )])],
-                    pos: Pos {
-                        filename: None,
-                        line: 0,
-                        column: 6
-                    }
-                }
-                .into(),
-                Item::Text(
-                    "!".to_string(),
-                    Pos {
-                        filename: None,
-                        line: 0,
-                        column: 18
-                    }
-                ),
-            ]))
+        check_ok(
+            include_str!("../../test/element.sst"),
+            include_str!("../../test/element.json"),
         );
     }
 
     #[test]
     fn parse_element_eof() {
-        assert_eq!(
-            parse_string(None, "Hello \\emph{World!"),
-            Err(Error::UnexpectedEOF(Pos {
+        check_err(
+            include_str!("../../test/element-eof.sst"),
+            Error::UnexpectedEOF(Pos {
                 filename: None,
                 line: 0,
-                column: 18
-            }))
-        );
+                column: 18,
+            }),
+        )
     }
 
     #[test]
     fn parse_begin_end() {
-        assert_eq!(
-            parse_string(None, "\\begin{emph}bla\\end{emph}"),
-            Ok(Element {
-                tag: "emph".to_string(),
-                named_args: HashMap::new(),
-                pos_args: vec![Doc(vec![Item::Text(
-                    "bla".to_string(),
-                    Pos {
-                        filename: None,
-                        line: 0,
-                        column: 12
-                    }
-                )])],
-                pos: Pos {
-                    filename: None,
-                    line: 0,
-                    column: 0
-                }
-            }
-            .into())
+        check_ok(
+            include_str!("../../test/long-element.sst"),
+            include_str!("../../test/long-element.json"),
         );
     }
 
     #[test]
     fn parse_begin_end_mismatch() {
-        assert_eq!(
-            parse_string(None, "\\begin{emph}bla\\end{emp}"),
-            Err(Error::MismatchingTags(
+        check_err(
+            include_str!("../../test/long-element-mismatch.sst"),
+            Error::MismatchingTags(
                 "emph".to_string(),
                 "emp".to_string(),
                 Pos {
                     filename: None,
                     line: 0,
-                    column: 24
-                }
-            ))
+                    column: 24,
+                },
+            ),
         );
     }
 }
