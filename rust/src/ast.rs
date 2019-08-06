@@ -81,7 +81,7 @@ pub type Tag = String;
 
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Pos {
-    pub filename: Arc<String>,
+    pub filename: Option<Arc<String>>,
     pub line: u64,
     pub column: u64,
 }

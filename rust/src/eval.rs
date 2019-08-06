@@ -14,6 +14,7 @@ pub enum Error {
     BadArity,
     BadStrip(Pos),
     BadInclude(Pos),
+    UnknownBase(Pos),
     IOError(Pos, String, io::Error),
 }
 
@@ -72,7 +73,7 @@ fn eval_into(items: &mut Vec<Item>, mut env: Env, doc: &Doc) -> Result<(), Error
                     eval_into(items, env.clone(), &elem.pos_args[0])?;
                 } else if elem.tag == "include" {
                     let (filename, file) = read_file_from(&elem)?;
-                    let ast = parser::parse_string(&filename, &file).expect("Parse error");
+                    let ast = parser::parse_string(Some(&filename), &file).expect("Parse error");
                     eval_into(items, None, &ast)?;
                 } else if elem.tag == "includeraw" {
                     let (filename, file) = read_file_from(&elem)?;
@@ -80,7 +81,7 @@ fn eval_into(items: &mut Vec<Item>, mut env: Env, doc: &Doc) -> Result<(), Error
                         items,
                         &file,
                         &Pos {
-                            filename: Arc::new(filename),
+                            filename: Some(Arc::new(filename)),
                             line: 0,
                             column: 0,
                         },
@@ -175,13 +176,18 @@ fn read_file_from(elem: &Element) -> Result<(String, String), Error> {
         return Err(Error::BadInclude(elem.pos.clone()));
     }
     let filename = get_text(&elem.pos_args[0], Error::BadInclude(elem.pos.clone()))?;
-    let path = Path::new(&*elem.pos.filename)
-        .parent()
-        .unwrap()
-        .join(&filename);
-    let filename = path.to_str().unwrap();
-    match fs::read_to_string(&filename) {
-        Ok(s) => Ok((filename.to_string(), s)),
-        Err(err) => Err(Error::IOError(elem.pos.clone(), filename.to_string(), err)),
+    if let Some(parent_filename) = &elem.pos.filename {
+        let path = Path::new(&**parent_filename)
+            .parent()
+            .unwrap()
+            .join(&filename);
+        let filename = path.to_str().unwrap();
+        match fs::read_to_string(&filename) {
+            Ok(s) => Ok((filename.to_string(), s)),
+            Err(err) => Err(Error::IOError(elem.pos.clone(), filename.to_string(), err)),
+        }
+    } else {
+        // FIXME: we don't need parent_filename if filename is absolute.
+        Err(Error::UnknownBase(elem.pos.clone()))
     }
 }

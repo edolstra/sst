@@ -88,7 +88,7 @@ pub fn validate(schema: &Schema, doc: &Doc, filename: &str) -> Result<Instance, 
         &schema.start,
         doc,
         Pos {
-            filename: Arc::new(filename.to_string()),
+            filename: Some(Arc::new(filename.to_string())),
             line: 0,
             column: 0,
         },

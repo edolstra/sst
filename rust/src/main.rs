@@ -15,7 +15,7 @@ use std::process::{Command, Stdio};
 
 fn parse_file(filename: &str) -> ast::Doc {
     let input = fs::read_to_string(&filename).expect("Unable to read file");
-    parser::parse_string(&filename, &input).expect("Parse error")
+    parser::parse_string(Some(&filename), &input).expect("Parse error")
 }
 
 fn eval_file(filename: &str) -> ast::Doc {

@@ -17,7 +17,7 @@ pub enum Error {
 }
 
 struct State<'a> {
-    filename: Arc<String>,
+    filename: Option<Arc<String>>,
     line: u64,
     column: u64,
     chars: Peekable<Chars<'a>>,
@@ -48,7 +48,7 @@ impl<'a> State<'a> {
 
     fn pos(&self) -> Pos {
         Pos {
-            filename: Arc::clone(&self.filename),
+            filename: self.filename.clone(),
             line: self.line,
             column: self.column,
         }
@@ -66,9 +66,9 @@ impl<'a> State<'a> {
     }
 }
 
-pub fn parse_string(filename: &str, s: &str) -> Result<Doc, Error> {
+pub fn parse_string(filename: Option<&str>, s: &str) -> Result<Doc, Error> {
     let mut state = State {
-        filename: Arc::new(filename.to_string()),
+        filename: filename.map(|filename| Arc::new(filename.to_string())),
         line: 0,
         column: 0,
         chars: s.chars().peekable(),
@@ -425,17 +425,14 @@ mod test {
     use super::*;
     use crate::ast::Item;
 
-    const FILE: &str = "test.sst";
-
     #[test]
     fn parse_str() {
-        let filename = Arc::new(FILE.to_string());
         assert_eq!(
-            parse_string(FILE, "hello"),
+            parse_string(None, "hello"),
             Ok(Item::Text(
                 "hello".to_string(),
                 Pos {
-                    filename: Arc::clone(&filename),
+                    filename: None,
                     line: 0,
                     column: 0
                 }
@@ -446,14 +443,13 @@ mod test {
 
     #[test]
     fn parse_element() {
-        let filename = Arc::new(FILE.to_string());
         assert_eq!(
-            parse_string(FILE, "Hello \\emph{World}!"),
+            parse_string(None, "Hello \\emph{World}!"),
             Ok(Doc(vec![
                 Item::Text(
                     "Hello ".to_string(),
                     Pos {
-                        filename: Arc::clone(&filename),
+                        filename: None,
                         line: 0,
                         column: 0
                     }
@@ -464,13 +460,13 @@ mod test {
                     pos_args: vec![Doc(vec![Item::Text(
                         "World".to_string(),
                         Pos {
-                            filename: Arc::clone(&filename),
+                            filename: None,
                             line: 0,
                             column: 12
                         }
                     )])],
                     pos: Pos {
-                        filename: Arc::clone(&filename),
+                        filename: None,
                         line: 0,
                         column: 6
                     }
@@ -479,7 +475,7 @@ mod test {
                 Item::Text(
                     "!".to_string(),
                     Pos {
-                        filename: Arc::clone(&filename),
+                        filename: None,
                         line: 0,
                         column: 18
                     }
@@ -490,11 +486,10 @@ mod test {
 
     #[test]
     fn parse_element_eof() {
-        let filename = Arc::new(FILE.to_string());
         assert_eq!(
-            parse_string(FILE, "Hello \\emph{World!"),
+            parse_string(None, "Hello \\emph{World!"),
             Err(Error::UnexpectedEOF(Pos {
-                filename: Arc::clone(&filename),
+                filename: None,
                 line: 0,
                 column: 18
             }))
@@ -503,22 +498,21 @@ mod test {
 
     #[test]
     fn parse_begin_end() {
-        let filename = Arc::new(FILE.to_string());
         assert_eq!(
-            parse_string(FILE, "\\begin{emph}bla\\end{emph}"),
+            parse_string(None, "\\begin{emph}bla\\end{emph}"),
             Ok(Element {
                 tag: "emph".to_string(),
                 named_args: HashMap::new(),
                 pos_args: vec![Doc(vec![Item::Text(
                     "bla".to_string(),
                     Pos {
-                        filename: Arc::clone(&filename),
+                        filename: None,
                         line: 0,
                         column: 12
                     }
                 )])],
                 pos: Pos {
-                    filename: Arc::clone(&filename),
+                    filename: None,
                     line: 0,
                     column: 0
                 }
@@ -529,14 +523,13 @@ mod test {
 
     #[test]
     fn parse_begin_end_mismatch() {
-        let filename = Arc::new(FILE.to_string());
         assert_eq!(
-            parse_string(FILE, "\\begin{emph}bla\\end{emp}"),
+            parse_string(None, "\\begin{emph}bla\\end{emp}"),
             Err(Error::MismatchingTags(
                 "emph".to_string(),
                 "emp".to_string(),
                 Pos {
-                    filename: Arc::clone(&filename),
+                    filename: None,
                     line: 0,
                     column: 24
                 }
