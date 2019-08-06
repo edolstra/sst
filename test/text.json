@@ -1,11 +1,9 @@
 [
   {
-    "Text": [
-      "This is a test\n",
-      {
-        "line": 0,
-        "column": 0
-      }
-    ]
+    "text": "This is a test\n",
+    "pos": {
+      "line": 0,
+      "column": 0
+    }
   }
 ]

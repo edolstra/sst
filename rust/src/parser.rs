@@ -100,10 +100,10 @@ fn parse_doc<'a>(state: &mut State, required_end: Option<&str>) -> Result<(Doc, 
 
     /* Strip leading empty line. */
     if !doc.is_empty() {
-        if let Item::Text(ref mut s, _) = doc[0] {
+        if let Item::Text { ref mut text, .. } = doc[0] {
             let mut res = None;
             {
-                let mut i = s.chars();
+                let mut i = text.chars();
                 loop {
                     match i.next() {
                         None => break,
@@ -119,7 +119,7 @@ fn parse_doc<'a>(state: &mut State, required_end: Option<&str>) -> Result<(Doc, 
                 }
             }
             if let Some(res) = res {
-                *s = res.to_string();
+                *text = res.to_string();
             }
         }
     }
@@ -129,9 +129,9 @@ fn parse_doc<'a>(state: &mut State, required_end: Option<&str>) -> Result<(Doc, 
     /* Strip indentation. */
     for (n, item) in doc.iter().enumerate() {
         match item {
-            Item::Text(s, pos) => {
-                let i = strip_indent(&s, &indent.s, n == 0);
-                stripped_items.push(Item::Text(i, pos.clone()))
+            Item::Text { text, pos } => {
+                let i = strip_indent(&text, &indent.s, n == 0);
+                stripped_items.push(Item::new_text(i, pos.clone()))
             }
             _ => stripped_items.push(item.clone()), // FIXME
         }
@@ -155,7 +155,10 @@ fn parse_doc2<'a>(state: &mut State, required_end: Option<&str>) -> Result<(Doc,
 
                 if !text.is_empty() {
                     indent = unify_indents(indent, get_indent(&text));
-                    items.push(Item::Text(mem::replace(&mut text, String::new()), text_pos));
+                    items.push(Item::new_text(
+                        mem::replace(&mut text, String::new()),
+                        text_pos,
+                    ));
                 };
 
                 state.next();
@@ -248,7 +251,7 @@ fn parse_doc2<'a>(state: &mut State, required_end: Option<&str>) -> Result<(Doc,
                 }
                 if !text.is_empty() {
                     indent = unify_indents(indent, get_indent(&text));
-                    items.push(Item::Text(text, text_pos));
+                    items.push(Item::new_text(text, text_pos));
                 };
                 return Ok((Doc(items), indent));
             }
@@ -484,6 +487,14 @@ mod test {
                     column: 24,
                 },
             ),
+        );
+    }
+
+    #[test]
+    fn parse_indent() {
+        check_ok(
+            include_str!("../../test/indent.sst"),
+            include_str!("../../test/indent.json"),
         );
     }
 }

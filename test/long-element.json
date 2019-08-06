@@ -1,25 +1,20 @@
 [
   {
-    "Element": {
-      "tag": "emph",
-      "named_args": {},
-      "pos_args": [
-        [
-          {
-            "Text": [
-              "bla",
-              {
-                "line": 0,
-                "column": 12
-              }
-            ]
+    "tag": "emph",
+    "pos_args": [
+      [
+        {
+          "text": "bla",
+          "pos": {
+            "line": 0,
+            "column": 12
           }
-        ]
-      ],
-      "pos": {
-        "line": 0,
-        "column": 0
-      }
+        }
+      ]
+    ],
+    "pos": {
+      "line": 0,
+      "column": 0
     }
   }
 ]

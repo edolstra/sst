@@ -137,8 +137,8 @@ impl<'a> Cursor<'a> {
             None
         } else if let Some(c) = self.pending_chars.clone().next() {
             Some(c)
-        } else if let Some(Item::Text(s, _)) = self.items.first() {
-            s.chars().next()
+        } else if let Some(Item::Text { text, .. }) = self.items.first() {
+            text.chars().next()
         } else {
             None
         }
@@ -155,10 +155,10 @@ impl<'a> Cursor<'a> {
                 self.cur_pos.column += 1;
             }
             Some(c)
-        } else if let Some(Item::Text(s, pos)) = self.items.first() {
+        } else if let Some(Item::Text { text, pos }) = self.items.first() {
             self.cur_pos = pos.clone();
             self.items = &self.items[1..];
-            self.pending_chars = s.chars();
+            self.pending_chars = text.chars();
             self.pending_chars.next()
         } else {
             None

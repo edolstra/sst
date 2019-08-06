@@ -1,0 +1,86 @@
+[
+  {
+    "tag": "chapter",
+    "pos_args": [
+      [
+        {
+          "text": "Bla",
+          "pos": {
+            "line": 0,
+            "column": 9
+          }
+        }
+      ],
+      [
+        {
+          "text": "\nTest:\n\n",
+          "pos": {
+            "line": 0,
+            "column": 14
+          }
+        },
+        {
+          "tag": "screen",
+          "pos_args": [
+            [
+              {
+                "text": "Bla bla\n  Xyzzy\nFnord\n",
+                "pos": {
+                  "line": 4,
+                  "column": 10
+                }
+              }
+            ]
+          ],
+          "pos": {
+            "line": 4,
+            "column": 2
+          }
+        },
+        {
+          "text": "\n\n  The end.\n\n  ",
+          "pos": {
+            "line": 8,
+            "column": 3
+          }
+        },
+        {
+          "tag": "screen",
+          "pos_args": [
+            [
+              {
+                "text": "ABC\nDEF\n  \n      GHI\n  \nBLA\n",
+                "pos": {
+                  "line": 12,
+                  "column": 16
+                }
+              }
+            ]
+          ],
+          "pos": {
+            "line": 12,
+            "column": 2
+          }
+        },
+        {
+          "text": "\n\n  The end 2.\n\n",
+          "pos": {
+            "line": 19,
+            "column": 14
+          }
+        }
+      ]
+    ],
+    "pos": {
+      "line": 0,
+      "column": 0
+    }
+  },
+  {
+    "text": "\n",
+    "pos": {
+      "line": 23,
+      "column": 1
+    }
+  }
+]

@@ -1,43 +1,34 @@
 [
   {
-    "Text": [
-      "Hello ",
-      {
-        "line": 0,
-        "column": 0
-      }
-    ]
-  },
-  {
-    "Element": {
-      "tag": "emph",
-      "named_args": {},
-      "pos_args": [
-        [
-          {
-            "Text": [
-              "World",
-              {
-                "line": 0,
-                "column": 12
-              }
-            ]
-          }
-        ]
-      ],
-      "pos": {
-        "line": 0,
-        "column": 6
-      }
+    "text": "Hello ",
+    "pos": {
+      "line": 0,
+      "column": 0
     }
   },
   {
-    "Text": [
-      "!",
-      {
-        "line": 0,
-        "column": 18
-      }
-    ]
+    "tag": "emph",
+    "pos_args": [
+      [
+        {
+          "text": "World",
+          "pos": {
+            "line": 0,
+            "column": 12
+          }
+        }
+      ]
+    ],
+    "pos": {
+      "line": 0,
+      "column": 6
+    }
+  },
+  {
+    "text": "!",
+    "pos": {
+      "line": 0,
+      "column": 18
+    }
   }
 ]

@@ -1,0 +1,24 @@
+\chapter{Bla}{
+
+  Test:
+
+  \screen{
+    Bla bla
+      Xyzzy
+    Fnord
+  }
+
+  The end.
+
+  \begin{screen}
+      ABC
+      DEF
+        {{
+            GHI
+        }}
+      BLA
+  \end{screen}
+
+  The end 2.
+
+}
