@@ -6,6 +6,7 @@ mod parser;
 mod schema;
 mod text_layout;
 mod to_text;
+mod unindent;
 mod validate;
 
 use clap::{App, Arg, SubCommand};

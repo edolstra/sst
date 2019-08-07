@@ -73,6 +73,29 @@ impl From<Element> for Item {
     }
 }
 
+/// In a vector of `Item`s, concatenate adjacent `Text` items and
+/// remove empty `Text` items.
+pub fn concat_texts(items: Vec<Item>) -> Vec<Item> {
+    let mut res = vec![];
+    for item in items.into_iter() {
+        if let Item::Text { text, .. } = &item {
+            if !text.is_empty() {
+                if let Some(Item::Text {
+                    text: prev_text, ..
+                }) = res.last_mut()
+                {
+                    prev_text.push_str(&text);
+                } else {
+                    res.push(item);
+                }
+            }
+        } else {
+            res.push(item);
+        }
+    }
+    res
+}
+
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Element {
     pub tag: Tag,
