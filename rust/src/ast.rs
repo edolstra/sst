@@ -1,6 +1,7 @@
 use serde::Serialize;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
@@ -116,7 +117,7 @@ impl Element {
 
 pub type Tag = String;
 
-pub type Filename = Arc<String>;
+pub type Filename = Arc<PathBuf>;
 
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Pos {

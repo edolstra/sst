@@ -11,6 +11,7 @@ mod validate;
 
 use std::fs;
 use std::io::Write;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use structopt::StructOpt;
 
@@ -21,14 +22,14 @@ enum Sst {
     #[structopt(name = "parse")]
     Parse {
         /// File to parse
-        input: String,
+        input: PathBuf,
     },
 
     /// Evaluate an SST file
     #[structopt(name = "eval")]
     Eval {
         /// File to evaluate
-        input: String,
+        input: PathBuf,
     },
 
     /// Validate an SST file
@@ -38,18 +39,18 @@ enum Sst {
         #[structopt(short = "j", long = "json")]
         json: bool,
         /// File to validate
-        input: String,
+        input: PathBuf,
     },
 
     /// Read an SST file in your terminal
     #[structopt(name = "read")]
     Read {
         /// File to read
-        input: String,
+        input: PathBuf,
     },
 }
 
-fn parse_file(filename: &str, include_filename: bool) -> ast::Doc {
+fn parse_file(filename: &Path, include_filename: bool) -> ast::Doc {
     let input = fs::read_to_string(&filename).expect("Unable to read file");
     parser::parse_string(
         if include_filename {
@@ -62,12 +63,12 @@ fn parse_file(filename: &str, include_filename: bool) -> ast::Doc {
     .expect("Parse error")
 }
 
-fn eval_file(filename: &str) -> ast::Doc {
+fn eval_file(filename: &Path) -> ast::Doc {
     let ast = parse_file(filename, true);
     eval::eval(&ast).expect("Evaluation error")
 }
 
-fn validate_file(filename: &str) -> validate::Instance {
+fn validate_file(filename: &Path) -> validate::Instance {
     let ast = eval_file(filename);
     validate::validate(&core::SCHEMA, &ast, &filename).expect("Validation error")
 }

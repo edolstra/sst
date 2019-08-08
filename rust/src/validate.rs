@@ -1,6 +1,7 @@
 use crate::{ast::*, schema::*};
 use serde::Serialize;
 use std::mem;
+use std::path::Path;
 use std::str::Chars;
 use std::sync::Arc;
 
@@ -82,13 +83,13 @@ impl Instance {
     }
 }
 
-pub fn validate(schema: &Schema, doc: &Doc, filename: &str) -> Result<Instance, Error> {
+pub fn validate(schema: &Schema, doc: &Doc, filename: &Path) -> Result<Instance, Error> {
     validate_full_doc(
         schema,
         &schema.start,
         doc,
         Pos {
-            filename: Some(Arc::new(filename.to_string())),
+            filename: Some(Arc::new(filename.into())),
             line: 0,
             column: 0,
         },

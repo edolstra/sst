@@ -10,6 +10,7 @@ use nom::{
     IResult,
 };
 use nom_locate::LocatedSpanEx;
+use std::path::Path;
 use std::sync::Arc;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -164,8 +165,8 @@ pub fn doc<'a>(input: Span<'a>) -> PResult<Doc> {
     map(many0(item), |items| Doc(concat_texts(items)))(input)
 }
 
-pub fn parse_string(filename: Option<&str>, s: &str) -> Result<Doc, Error> {
-    let filename = filename.map(|filename| Arc::new(filename.to_string()));
+pub fn parse_string(filename: Option<&Path>, s: &str) -> Result<Doc, Error> {
+    let filename = filename.map(|filename| Arc::new(filename.into()));
     let input = Span::new_extra(s, &filename);
 
     let res = all_consuming(doc)(input);

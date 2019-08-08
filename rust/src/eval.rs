@@ -2,7 +2,7 @@ use crate::{ast::*, parser};
 use std::collections::HashMap;
 use std::fs;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -15,7 +15,7 @@ pub enum Error {
     BadStrip(Pos),
     BadInclude(Pos),
     UnknownBase(Pos),
-    IOError(Pos, String, io::Error),
+    IOError(Pos, PathBuf, io::Error),
 }
 
 pub fn eval(doc: &Doc) -> Result<Doc, Error> {
@@ -171,7 +171,7 @@ fn get_text<'a>(arg: &'a Doc) -> Option<&'a str> {
     }
 }
 
-fn read_file_from(elem: &Element) -> Result<(String, String), Error> {
+fn read_file_from(elem: &Element) -> Result<(PathBuf, String), Error> {
     if elem.pos_args.len() != 1 {
         return Err(Error::BadInclude(elem.pos.clone()));
     }
@@ -182,10 +182,9 @@ fn read_file_from(elem: &Element) -> Result<(String, String), Error> {
             .parent()
             .unwrap()
             .join(&filename);
-        let filename = path.to_str().unwrap();
-        match fs::read_to_string(&filename) {
-            Ok(s) => Ok((filename.to_string(), s)),
-            Err(err) => Err(Error::IOError(elem.pos.clone(), filename.to_string(), err)),
+        match fs::read_to_string(&path) {
+            Ok(s) => Ok((path, s)),
+            Err(err) => Err(Error::IOError(elem.pos.clone(), path, err)),
         }
     } else {
         // FIXME: we don't need parent_filename if filename is absolute.
