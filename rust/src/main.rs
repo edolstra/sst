@@ -9,10 +9,45 @@ mod to_text;
 mod unindent;
 mod validate;
 
-use clap::{App, Arg, SubCommand};
 use std::fs;
 use std::io::Write;
 use std::process::{Command, Stdio};
+use structopt::StructOpt;
+
+#[derive(Debug, StructOpt)]
+#[structopt(name = "sst", about = "Simple Structured Text processor")]
+enum Sst {
+    /// Parse an SST file
+    #[structopt(name = "parse")]
+    Parse {
+        /// File to parse
+        input: String,
+    },
+
+    /// Evaluate an SST file
+    #[structopt(name = "eval")]
+    Eval {
+        /// File to evaluate
+        input: String,
+    },
+
+    /// Validate an SST file
+    #[structopt(name = "check")]
+    Check {
+        /// Print validation proof in JSON
+        #[structopt(short = "j", long = "json")]
+        json: bool,
+        /// File to validate
+        input: String,
+    },
+
+    /// Read an SST file in your terminal
+    #[structopt(name = "read")]
+    Read {
+        /// File to read
+        input: String,
+    },
+}
 
 fn parse_file(filename: &str, include_filename: bool) -> ast::Doc {
     let input = fs::read_to_string(&filename).expect("Unable to read file");
@@ -61,67 +96,28 @@ fn show_in_pager(text: &str) {
 }
 
 fn main() {
-    let app = App::new("SST processor")
-        .version("0.1")
-        .author("Eelco Dolstra <edolstra@gmail.com>")
-        .subcommand(
-            SubCommand::with_name("parse")
-                .about("Parse an SST file")
-                .arg(Arg::with_name("INPUT").help("File to parse").required(true)),
-        )
-        .subcommand(
-            SubCommand::with_name("eval")
-                .about("Evaluate an SST file")
-                .arg(
-                    Arg::with_name("INPUT")
-                        .help("File to evaluate")
-                        .required(true),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("check")
-                .about("Validate an SST file")
-                .arg(
-                    Arg::with_name("INPUT")
-                        .help("File to validate")
-                        .required(true),
-                )
-                .arg(
-                    Arg::with_name("json")
-                        .long("json")
-                        .short("j")
-                        .help("Print validation proof in JSON"),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("read")
-                .about("Read an SST file in your terminal")
-                .arg(Arg::with_name("INPUT").help("File to read").required(true)),
-        );
-
-    let matches = app.get_matches();
-
-    if let Some(matches) = matches.subcommand_matches("parse") {
-        let filename = matches.value_of("INPUT").unwrap();
-        let ast = parse_file(&filename, false);
-        println!("{}", &serde_json::to_string_pretty(&ast).unwrap());
-    } else if let Some(matches) = matches.subcommand_matches("eval") {
-        let filename = matches.value_of("INPUT").unwrap();
-        let ast = eval_file(&filename);
-        println!("{}", &serde_json::to_string(&ast).unwrap());
-    } else if let Some(matches) = matches.subcommand_matches("check") {
-        let filename = matches.value_of("INPUT").unwrap();
-        let instance = validate_file(&filename);
-        if matches.is_present("json") {
-            println!("{}", &serde_json::to_string(&instance).unwrap());
+    match Sst::from_args() {
+        Sst::Parse { input } => {
+            let ast = parse_file(&input, false);
+            println!("{}", &serde_json::to_string_pretty(&ast).unwrap());
         }
-    } else if let Some(matches) = matches.subcommand_matches("read") {
-        let filename = matches.value_of("INPUT").unwrap();
-        let instance = validate_file(&filename);
-        //text_layout::layout_test();
-        let text = to_text::to_text(&instance, 80);
-        show_in_pager(&text);
-    } else {
-        eprintln!("{}", matches.usage());
+
+        Sst::Eval { input } => {
+            let ast = eval_file(&input);
+            println!("{}", &serde_json::to_string(&ast).unwrap());
+        }
+
+        Sst::Check { input, json } => {
+            let instance = validate_file(&input);
+            if json {
+                println!("{}", &serde_json::to_string(&instance).unwrap());
+            }
+        }
+
+        Sst::Read { input } => {
+            let instance = validate_file(&input);
+            let text = to_text::to_text(&instance, 80);
+            show_in_pager(&text);
+        }
     }
 }
