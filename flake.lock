@@ -1,24 +1,19 @@
 {
     "inputs": {
-        "github:edolstra/import-cargo": {
-            "id": "import-cargo",
+        "grcov": {
             "inputs": {},
-            "narHash": "sha256-OymzyduYP3zayQn2NrBSeKOQW7tTwKUWc/ayMq+UN4Q=",
-            "nonFlakeInputs": {},
-            "uri": "github:edolstra/import-cargo/f4ffb9360aa8186d56ed0e0e4d923454ffc7f188"
+            "narHash": "sha256-kanCngq3gUM9lTjHogWMHyH4KYA9dx9JScbs16yVJDQ=",
+            "uri": "github:mozilla/grcov/d46cfb609d66bc3cf9ea8b4260058b3163f56c2a"
+        },
+        "import-cargo": {
+            "inputs": {},
+            "narHash": "sha256-wIXWOpX9rRjK5NDsL6WzuuBJl2R0kUCnlpZUrASykSc=",
+            "uri": "github:edolstra/import-cargo/8abf7b3a8cbe1c8a885391f826357a74d382a422"
         },
         "nixpkgs": {
-            "id": "nixpkgs",
             "inputs": {},
-            "narHash": "sha256-nqoTgie8RxaL7r9o9UWKykhWYA5bFd7KQ3CJStX8tbE=",
-            "nonFlakeInputs": {},
-            "uri": "github:edolstra/nixpkgs/2ec095b2f2634cd9dcd489269ec21b05cee3e035"
-        }
-    },
-    "nonFlakeInputs": {
-        "grcov": {
-            "narHash": "sha256-wHfdRHQQbG1Qk6G34HHOhdZMxxUebIaKOZkJD6obaWo=",
-            "uri": "github:mozilla/grcov/6471bb938c1306be97b830ae72571cb2e1ef0094"
+            "narHash": "sha256-TrLhI3xPkTTznE9gcMHhkHirGNN7N02zM4DxJ/U3WRs=",
+            "uri": "github:edolstra/nixpkgs/24bf27fc215e8300877dfa1c426b9966bbfbd150"
         }
     },
     "version": 2

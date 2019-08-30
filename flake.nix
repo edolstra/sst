@@ -1,25 +1,19 @@
 {
-  name = "sst";
-
-  edition = 201906;
+  edition = 201909;
 
   description = "A simple, extensible, unambiguous markup language";
 
-  inputs =
-    [ "nixpkgs"
-      github:edolstra/import-cargo
-    ];
+  inputs.import-cargo.uri = "github:edolstra/import-cargo";
+  inputs.grcov = { uri = github:mozilla/grcov; flake = false; };
 
-  nonFlakeInputs.grcov = github:mozilla/grcov;
-
-  outputs = inputs:
-    with import inputs.nixpkgs { system = "x86_64-linux"; };
+  outputs = { self, nixpkgs, import-cargo, grcov }:
+    with import nixpkgs { system = "x86_64-linux"; };
     with pkgs;
 
     rec {
 
       builders.buildPackage = { isShell ? false, doCoverage ? false }: stdenv.mkDerivation rec {
-        name = "sst-${lib.substring 0 8 inputs.self.lastModified}-${inputs.self.shortRev or "0000000"}";
+        name = "sst-${lib.substring 0 8 self.lastModified}-${self.shortRev or "0000000"}";
 
         buildInputs =
           [ rustc
@@ -27,13 +21,13 @@
           ] ++ (if isShell then [
             rustfmt
           ] else [
-            (inputs.import-cargo.builders.importCargo {
+            (import-cargo.builders.importCargo {
               lockFile = rust/Cargo.lock;
               inherit pkgs;
             }).cargoHome
           ]) ++ lib.optionals doCoverage [ packages.grcov lcov ];
 
-        src = if isShell then null else inputs.self;
+        src = if isShell then null else self;
 
         RUSTC_BOOTSTRAP = if doCoverage then "1" else null;
         RUSTFLAGS = lib.optionals doCoverage [ "-Zprofile" "-Ccodegen-units=1" "-Cinline-threshold=0" "-Clink-dead-code" "-Coverflow-checks=off" "-Zno-landing-pads" ];
@@ -77,13 +71,13 @@
         buildInputs =
           [ rustc
             cargo
-            (inputs.import-cargo.builders.importCargo {
-              lockFile = inputs.grcov + "/Cargo.lock";
+            (import-cargo.builders.importCargo {
+              lockFile = grcov + "/Cargo.lock";
               inherit pkgs;
             }).cargoHome
           ];
 
-        src = inputs.grcov;
+        src = grcov;
 
         buildPhase = "cargo build --release --frozen --offline";
 
