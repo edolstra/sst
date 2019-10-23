@@ -10,9 +10,9 @@
     with import nixpkgs { system = "x86_64-linux"; };
     with pkgs;
 
-    rec {
+    let
 
-      builders.buildPackage = { isShell ? false, doCoverage ? false }: stdenv.mkDerivation rec {
+      buildPackage = { isShell ? false, doCoverage ? false }: stdenv.mkDerivation rec {
         name = "sst-${lib.substring 0 8 self.lastModified}-${self.shortRev or "0000000"}";
 
         buildInputs =
@@ -25,7 +25,7 @@
               lockFile = rust/Cargo.lock;
               inherit pkgs;
             }).cargoHome
-          ]) ++ lib.optionals doCoverage [ packages.grcov lcov ];
+          ]) ++ lib.optionals doCoverage [ self.packages.x86_64-linux.grcov lcov ];
 
         src = if isShell then null else self;
 
@@ -55,17 +55,19 @@
           '';
       };
 
-      packages.sst = builders.buildPackage { };
+    in {
 
-      defaultPackage = packages.sst;
+      packages.x86_64-linux.sst = buildPackage { };
 
-      checks.build = defaultPackage;
-      checks.coverage = builders.buildPackage { doCoverage = true; };
+      defaultPackage.x86_64-linux = self.packages.x86_64-linux.sst;
 
-      devShell = builders.buildPackage { isShell = true; };
+      checks.x86_64-linux.build = self.defaultPackage.x86_64-linux;
+      checks.x86_64-linux.coverage = buildPackage { doCoverage = true; };
+
+      devShell.x86_64-linux = buildPackage { isShell = true; };
 
       # FIXME: should move this into a separate flake.
-      packages.grcov = stdenv.mkDerivation rec {
+      packages.x86_64-linux.grcov = stdenv.mkDerivation rec {
         name = "grcov";
 
         buildInputs =
