@@ -1,23 +1,58 @@
 {
-    "inputs": {
-        "grcov": {
-            "inputs": {},
-            "narHash": "sha256-kanCngq3gUM9lTjHogWMHyH4KYA9dx9JScbs16yVJDQ=",
-            "originalUrl": "github:mozilla/grcov",
-            "url": "github:mozilla/grcov/d46cfb609d66bc3cf9ea8b4260058b3163f56c2a"
-        },
-        "import-cargo": {
-            "inputs": {},
-            "narHash": "sha256-wIXWOpX9rRjK5NDsL6WzuuBJl2R0kUCnlpZUrASykSc=",
-            "originalUrl": "github:edolstra/import-cargo",
-            "url": "github:edolstra/import-cargo/8abf7b3a8cbe1c8a885391f826357a74d382a422"
-        },
-        "nixpkgs": {
-            "inputs": {},
-            "narHash": "sha256-ALTr2z3J1mE/2OAuEIALIq5pxgADfKvq7rF7gqxT4c0=",
-            "originalUrl": "nixpkgs",
-            "url": "github:edolstra/nixpkgs/bcceb882ccdfa818c1e18f4c1e88f2db68964305"
-        }
+  "inputs": {
+    "grcov": {
+      "info": {
+        "lastModified": 1580729070,
+        "narHash": "sha256-235uMxYlHxJ5y92EXZWAYEsEb6mm+b069GAd+BOIOxI="
+      },
+      "inputs": {},
+      "locked": {
+        "owner": "mozilla",
+        "repo": "grcov",
+        "rev": "989a84bb29e95e392589c4e73c29189fd69a1d4e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "mozilla",
+        "repo": "grcov",
+        "type": "github"
+      }
     },
-    "version": 3
+    "import-cargo": {
+      "info": {
+        "lastModified": 1567183309,
+        "narHash": "sha256-wIXWOpX9rRjK5NDsL6WzuuBJl2R0kUCnlpZUrASykSc="
+      },
+      "inputs": {},
+      "locked": {
+        "owner": "edolstra",
+        "repo": "import-cargo",
+        "rev": "8abf7b3a8cbe1c8a885391f826357a74d382a422",
+        "type": "github"
+      },
+      "original": {
+        "owner": "edolstra",
+        "repo": "import-cargo",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "info": {
+        "lastModified": 1580555482,
+        "narHash": "sha256-OnpEWzNxF/AU4KlqBXM2s5PWvfI5/BS6xQrPvkF5tO8="
+      },
+      "inputs": {},
+      "locked": {
+        "owner": "edolstra",
+        "repo": "nixpkgs",
+        "rev": "7f8d4b088e2df7fdb6b513bc2d6941f1d422a013",
+        "type": "github"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "type": "indirect"
+      }
+    }
+  },
+  "version": 4
 }
