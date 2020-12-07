@@ -1,10 +1,8 @@
 {
-  edition = 201909;
-
   description = "A simple, extensible, unambiguous markup language";
 
-  inputs.import-cargo.uri = "github:edolstra/import-cargo";
-  inputs.grcov = { uri = github:mozilla/grcov; flake = false; };
+  inputs.import-cargo.url = "github:edolstra/import-cargo";
+  inputs.grcov = { url = github:mozilla/grcov; flake = false; };
 
   outputs = { self, nixpkgs, import-cargo, grcov }:
     with import nixpkgs { system = "x86_64-linux"; };
@@ -13,7 +11,7 @@
     let
 
       buildPackage = { isShell ? false, doCoverage ? false }: stdenv.mkDerivation rec {
-        name = "sst-${lib.substring 0 8 self.lastModified}-${self.shortRev or "0000000"}";
+        name = "sst-${lib.substring 0 8 self.lastModifiedDate}-${self.shortRev or "dirty"}";
 
         buildInputs =
           [ rustc

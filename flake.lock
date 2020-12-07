@@ -1,15 +1,13 @@
 {
-  "inputs": {
+  "nodes": {
     "grcov": {
-      "info": {
-        "lastModified": 1580729070,
-        "narHash": "sha256-235uMxYlHxJ5y92EXZWAYEsEb6mm+b069GAd+BOIOxI="
-      },
-      "inputs": {},
+      "flake": false,
       "locked": {
+        "lastModified": 1607333790,
+        "narHash": "sha256-pf618FXbNd+tDTBZ9uBRXrXVZJUdrbyjWSDOmglniUc=",
         "owner": "mozilla",
         "repo": "grcov",
-        "rev": "989a84bb29e95e392589c4e73c29189fd69a1d4e",
+        "rev": "f460bfc2b99161c05d9e74aa8cc0978c90f62b9e",
         "type": "github"
       },
       "original": {
@@ -19,15 +17,12 @@
       }
     },
     "import-cargo": {
-      "info": {
-        "lastModified": 1567183309,
-        "narHash": "sha256-wIXWOpX9rRjK5NDsL6WzuuBJl2R0kUCnlpZUrASykSc="
-      },
-      "inputs": {},
       "locked": {
+        "lastModified": 1594305518,
+        "narHash": "sha256-frtArgN42rSaEcEOYWg8sVPMUK+Zgch3c+wejcpX3DY=",
         "owner": "edolstra",
         "repo": "import-cargo",
-        "rev": "8abf7b3a8cbe1c8a885391f826357a74d382a422",
+        "rev": "25d40be4a73d40a2572e0cc233b83253554f06c5",
         "type": "github"
       },
       "original": {
@@ -37,22 +32,26 @@
       }
     },
     "nixpkgs": {
-      "info": {
-        "lastModified": 1580555482,
-        "narHash": "sha256-OnpEWzNxF/AU4KlqBXM2s5PWvfI5/BS6xQrPvkF5tO8="
-      },
-      "inputs": {},
       "locked": {
-        "owner": "edolstra",
-        "repo": "nixpkgs",
-        "rev": "7f8d4b088e2df7fdb6b513bc2d6941f1d422a013",
-        "type": "github"
+        "lastModified": 1605220118,
+        "narHash": "sha256-Und10ixH1WuW0XHYMxxuHRohKYb45R/T8CwZuLd2D2Q=",
+        "path": "/nix/store/fxl9mrm5xvzam0lxi9ygdmksskx4qq8s-source",
+        "rev": "3090c65041104931adda7625d37fa874b2b5c124",
+        "type": "path"
       },
       "original": {
         "id": "nixpkgs",
         "type": "indirect"
       }
+    },
+    "root": {
+      "inputs": {
+        "grcov": "grcov",
+        "import-cargo": "import-cargo",
+        "nixpkgs": "nixpkgs"
+      }
     }
   },
-  "version": 4
+  "root": "root",
+  "version": 7
 }
